@@ -47,6 +47,8 @@ def detect_content_type(raw_bytes: bytes, filename: str) -> str:
         return "image/jpeg"
     if ext in [".webp"]:
         return "image/webp"
+    if ext in [".txt", ".md"]:
+        return "text/plain"
 
     return "application/octet-stream"
 

@@ -180,13 +180,74 @@ async def test_segmented_voice():
     print()
 
 
+async def test_langgraph_pipeline():
+    print("=" * 65)
+    print("5. LANGGRAPH STATE MACHINE (PAUSE & RESUME)")
+    print("=" * 65)
+    from langgraph.types import Command
+    from app.graph import build_graph
+    from app.schemas import VerdictStatus
+
+    graph = build_graph()
+    sample_text = (
+        "1. Scheme Name: PM Kisan Samman Nidhi.\n"
+        "2. Eligibility: Farmers having cultivable land up to 2 hectares are eligible.\n"
+        "3. Financial Benefit: Rs. 6000 per year."
+    )
+    run_id = "demo_graph_run"
+    config = {"configurable": {"thread_id": run_id}}
+
+    initial_state = {
+        "run_id": run_id,
+        "file_bytes": sample_text.encode("utf-8"),
+        "filename": "pmkisan.txt",
+        "content_type": "text/plain",
+        "persona": "citizen",
+        "language": "hi",
+        "status": "started",
+        "trace": [],
+        "verify_retries": 0,
+    }
+
+    print("Step 1: Starting graph execution...")
+    async for event in graph.astream(initial_state, config=config):
+        for node_name, output in event.items():
+            if node_name != "__interrupt__":
+                print(f"  [Node Completed] -> {node_name} (status: {output.get('status', 'ok')})")
+
+    # Inspect paused state
+    snap = graph.get_state(config)
+    print(f"\nStep 2: Graph paused! Next node: {list(snap.next)}")
+    questions = snap.values.get("questions", [])
+    print(f"  Interview required ({len(questions)} question(s)):")
+    for q in questions:
+        print(f"    - {q.question_text} [{q.field.value}]")
+
+    # Resume graph with answers
+    print("\nStep 3: Submitting answers to resume graph (land_hectares = 1.5)...")
+    resume_payload = {
+        "answers": {"land_hectares": 1.5},
+        "units": {"land_hectares": "hectares"},
+    }
+    async for event in graph.astream(Command(resume=resume_payload), config=config):
+        for node_name, output in event.items():
+            print(f"  [Resumed Node] -> {node_name} (status: {output.get('status', 'ok')})")
+
+    final_snap = graph.get_state(config)
+    verdict = final_snap.values.get("verdict")
+    print(f"\nStep 4: Final Verdict -> {verdict.status.value}")
+    print(f"  Summary: {verdict.summary}")
+    print()
+
+
 async def main():
     test_clause_splitting_and_bm25()
     await test_verifier()
     test_interview_and_evaluation()
     await test_segmented_voice()
+    await test_langgraph_pipeline()
     print("=" * 65)
-    print("ALL INTERACTIVE CHECKS COMPLETED SUCCESSFULLY!")
+    print("ALL 5 INTERACTIVE CHECKS COMPLETED SUCCESSFULLY!")
     print("=" * 65)
 
 

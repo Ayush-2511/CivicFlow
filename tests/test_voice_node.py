@@ -27,17 +27,22 @@ async def test_synthesize_explainer_voice_parallel():
     mock_tts.synthesize = AsyncMock(return_value=mock_audio_bytes)
 
     doc_id = "test_doc_voice_123"
-    result = await synthesize_explainer_voice(explainer, doc_id=doc_id, tts=mock_tts)
+    try:
+        result = await synthesize_explainer_voice(explainer, doc_id=doc_id, tts=mock_tts)
 
-    assert len(result.audio_urls) == 2
-    assert result.segments[0].audio_url is not None
-    assert result.segments[1].audio_url is not None
-    assert "/audio/" in result.segments[0].audio_url
-    assert mock_tts.synthesize.call_count == 2
+        assert len(result.audio_urls) == 2
+        assert result.segments[0].audio_url is not None
+        assert result.segments[1].audio_url is not None
+        assert "/audio/" in result.segments[0].audio_url
+        assert mock_tts.synthesize.call_count == 2
 
-    # Verify that the generated file is actually served by FastAPI /audio endpoint
-    audio_path = result.segments[0].audio_url
-    response = client.get(audio_path)
-    assert response.status_code == 200
-    assert len(response.content) == len(mock_audio_bytes)
+        # Verify that the generated file is actually served by FastAPI /audio endpoint
+        audio_path = result.segments[0].audio_url
+        response = client.get(audio_path)
+        assert response.status_code == 200
+        assert len(response.content) == len(mock_audio_bytes)
+    finally:
+        # Clean up mock audio artifacts
+        for p in settings.AUDIO_OUTPUT_DIR.glob(f"{doc_id[:10]}*.mp3"):
+            p.unlink(missing_ok=True)
 

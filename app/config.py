@@ -30,8 +30,8 @@ class Settings(BaseSettings):
 
     # LLM Provider Configuration
     GEMINI_API_KEY: str = ""
-    MODEL_FAST: str = "gemini-2.5-flash"
-    MODEL_STRONG: str = "gemini-2.5-pro"
+    MODEL_FAST: str = "gemini-3-flash-preview"
+    MODEL_STRONG: str = "gemini-3-flash-preview"
     LLM_TIMEOUT_SECONDS: int = 30
     MAX_RETRIES: int = 3
 

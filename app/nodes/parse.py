@@ -47,6 +47,16 @@ async def parse_document(
     if not raw_bytes or len(raw_bytes) < 10:
         raise UnreadableDocument("Document byte stream is empty or too small.")
 
+    # 0. Plain text format (.txt, .md)
+    if content_type == "text/plain":
+        try:
+            text = raw_bytes.decode("utf-8").strip()
+            if len(text) < 20:
+                raise UnreadableDocument("Text document is too short or empty.")
+            return [PageText(page=1, text=text)]
+        except UnicodeDecodeError as e:
+            raise UnreadableDocument(f"Could not decode text document: {str(e)}") from e
+
     # 1. Digital PDF parsing
     if content_type == "application/pdf" or raw_bytes.startswith(b"%PDF-"):
         try:
