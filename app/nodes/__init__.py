@@ -11,6 +11,9 @@ from app.nodes.extract import extract_scheme, group_clauses
 from app.nodes.verify import verify_scheme, check_quote_substring, check_value_in_quote, parse_indian_numbers
 from app.nodes.interview import generate_interview_questions, validate_answer
 from app.nodes.evaluate import evaluate, normalize_units, evaluate_single_condition
+from app.nodes.localize import get_language_name, get_legal_glossary
+from app.nodes.compose import compose_explainer
+from app.nodes.voice import synthesize_explainer_voice
 
 __all__ = [
     "IngestResult",
@@ -30,5 +33,9 @@ __all__ = [
     "evaluate",
     "normalize_units",
     "evaluate_single_condition",
+    "get_language_name",
+    "get_legal_glossary",
+    "compose_explainer",
+    "synthesize_explainer_voice",
 ]
 
