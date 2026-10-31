@@ -163,3 +163,20 @@ class TraceEntry(BaseModel):
     retries: int = 0
     details: str | None = None
 
+
+class SectionExtraction(BaseModel):
+    """Structured extraction output for a section/group of clauses."""
+    title: str = ""
+    audience: AudienceType = AudienceType.CITIZEN
+    benefits: list[Benefit] = Field(default_factory=list)
+    conditions: list[Condition] = Field(default_factory=list)
+    obligations: list[Obligation] = Field(default_factory=list)
+    uncertain: list[str] = Field(default_factory=list)
+
+
+class VerificationResult(BaseModel):
+    """Result of LLM verification re-check pass on an extracted cited fact."""
+    is_supported: bool
+    reason: str
+    corrected_quote: str | None = None
+
