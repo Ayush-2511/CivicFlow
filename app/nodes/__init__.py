@@ -9,6 +9,8 @@ from app.nodes.parse import PageText, parse_document
 from app.nodes.index import BM25ClauseIndex, split_into_clauses
 from app.nodes.extract import extract_scheme, group_clauses
 from app.nodes.verify import verify_scheme, check_quote_substring, check_value_in_quote, parse_indian_numbers
+from app.nodes.interview import generate_interview_questions, validate_answer
+from app.nodes.evaluate import evaluate, normalize_units, evaluate_single_condition
 
 __all__ = [
     "IngestResult",
@@ -23,5 +25,10 @@ __all__ = [
     "check_quote_substring",
     "check_value_in_quote",
     "parse_indian_numbers",
+    "generate_interview_questions",
+    "validate_answer",
+    "evaluate",
+    "normalize_units",
+    "evaluate_single_condition",
 ]
 
