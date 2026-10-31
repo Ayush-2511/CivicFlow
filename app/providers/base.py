@@ -30,6 +30,7 @@ class LLM(Protocol):
         prompt: str,
         *,
         tier: str = "fast",
+        images: list[bytes] | None = None,
         system_instruction: str | None = None,
     ) -> str:
         """Generate plain text completion."""

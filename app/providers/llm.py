@@ -69,9 +69,10 @@ class GeminiLLMProvider:
         prompt: str,
         *,
         tier: str = "fast",
+        images: list[bytes] | None = None,
         system_instruction: str | None = None,
     ) -> str:
-        """Generate raw text from prompt."""
+        """Generate raw text from prompt, with optional multimodal images."""
         client = self._get_client()
         model_name = self._resolve_model(tier)
 
@@ -79,12 +80,19 @@ class GeminiLLMProvider:
             system_instruction=system_instruction,
         )
 
+        contents: list[str | types.Part] = []
+        if images:
+            for img_bytes in images:
+                mime = "image/png" if img_bytes.startswith(b"\x89PNG") else "image/jpeg"
+                contents.append(types.Part.from_bytes(data=img_bytes, mime_type=mime))
+        contents.append(prompt)
+
         for attempt in range(1, self.max_retries + 1):
             try:
                 response = await asyncio.wait_for(
                     client.aio.models.generate_content(
                         model=model_name,
-                        contents=prompt,
+                        contents=contents,
                         config=config,
                     ),
                     timeout=self.timeout,
