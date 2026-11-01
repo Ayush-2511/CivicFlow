@@ -20,7 +20,7 @@ import {
   submitAnswers,
   subscribePipelineEvents,
 } from './api';
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [persona, setPersona] = useState<AudienceType>('citizen');
@@ -218,22 +218,13 @@ export const App: React.FC = () => {
 
         {/* Real-Time Stepper (If pipeline has started) */}
         {runId && (
-          <div className="relative">
-            <PipelineStepper
-              currentNode={pipelineStatus.current_node}
-              trace={pipelineStatus.trace || []}
-              status={pipelineStatus.status}
-              confidence={pipelineStatus.scheme?.confidence}
-            />
-            <button
-              onClick={handleReset}
-              className="absolute top-4 right-4 text-xs text-slate-400 hover:text-slate-700 flex items-center space-x-1 transition"
-              title="Reset Analysis"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New Scheme</span>
-            </button>
-          </div>
+          <PipelineStepper
+            currentNode={pipelineStatus.current_node}
+            trace={pipelineStatus.trace || []}
+            status={pipelineStatus.status}
+            confidence={pipelineStatus.scheme?.confidence}
+            onReset={handleReset}
+          />
         )}
 
         {/* Split-View Cockpit (2-Column Layout) */}
