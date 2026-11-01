@@ -122,12 +122,21 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
                   <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <p className="font-semibold text-slate-800">
-                    {reason.explanation}
+                  <p className="font-semibold text-slate-800 leading-snug">
+                    {(reason.explanation || '')
+                      .replace(/<=/g, 'does not exceed')
+                      .replace(/>=/g, 'is at least')
+                      .replace(/==/g, 'is equal to')
+                      .replace(/!=/g, 'is not equal to')
+                      .replace(/\s+in\s+'\[(.*?)\]'/g, ' is in: $1')
+                      .replace(/\s+not_in\s+'\[(.*?)\]'/g, ' is not in: $1')
+                      .replace(/\s*->\s*(PASSED|FAILED)/g, '')}
                   </p>
-                  <p className="text-[11px] text-slate-500 italic mt-0.5">
-                    Field: {reason.condition.field} {reason.condition.operator} {reason.condition.value} {reason.condition.unit || ''}
-                  </p>
+                  {reason.condition?.quote && (
+                    <p className="text-[11px] text-slate-500 italic mt-0.5">
+                      Requirement: "{reason.condition.quote}"
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -37,16 +37,71 @@ OPS: Dict[str, Callable[[Any, Any], bool]] = {
     ),
 }
 
-OPERATOR_SYMBOLS: Dict[str, str] = {
-    "lt": "<",
-    "lte": "<=",
-    "gt": ">",
-    "gte": ">=",
-    "eq": "==",
-    "neq": "!=",
-    "in": "in",
-    "not_in": "not in",
+FIELD_HUMAN_NAMES: Dict[str, str] = {
+    "annual_turnover": "annual business turnover",
+    "annual_income": "annual household income",
+    "business_type": "enterprise classification",
+    "land_hectares": "agricultural landholding",
+    "occupation": "primary occupation",
+    "state": "state of residence",
+    "category": "social/economic category",
+    "gender": "gender",
+    "age": "age",
+    "is_farmer": "agricultural engagement",
+    "is_student": "student enrollment",
+    "has_disability": "certified disability",
+    "employees": "number of full-time employees",
 }
+
+
+def _friendly_field(field_val: str) -> str:
+    """Return plain-language human name for a field identifier."""
+    return FIELD_HUMAN_NAMES.get(field_val, field_val.replace("_", " "))
+
+
+def _format_currency_inr(val: float) -> str:
+    """Format numeric values as Indian Currency (Crore, Lakh, or INR)."""
+    abs_val = abs(val)
+    if abs_val >= 10_000_000:
+        cr = val / 10_000_000
+        formatted_cr = f"{cr:g}"
+        return f"₹{formatted_cr} Crore (₹{int(val):,} INR)"
+    elif abs_val >= 100_000:
+        lk = val / 100_000
+        formatted_lk = f"{lk:g}"
+        return f"₹{formatted_lk} Lakh (₹{int(val):,} INR)"
+    else:
+        return f"₹{int(val):,} INR"
+
+
+def _format_value_with_unit(val: float, unit: Optional[str]) -> str:
+    """Format numeric values cleanly with units without raw float artifacts."""
+    if unit:
+        u_clean = unit.lower().strip()
+        if u_clean in ["inr", "rupees", "rs"]:
+            return _format_currency_inr(val)
+        if u_clean in ["hectare", "hectares", "ha"]:
+            return f"{val:g} hectares"
+        if u_clean in ["acre", "acres"]:
+            return f"{val:g} acres"
+        if u_clean in ["years", "year"]:
+            return f"{int(val)} years"
+        return f"{val:g} {unit}"
+    return f"{val:g}"
+
+
+def _format_human_list(items: Any) -> str:
+    """Format list of values into a natural English sequence."""
+    if not isinstance(items, list):
+        return f"'{items}'"
+    clean_items = [f"'{x}'" for x in items if x is not None]
+    if not clean_items:
+        return "none"
+    if len(clean_items) == 1:
+        return clean_items[0]
+    if len(clean_items) == 2:
+        return f"{clean_items[0]} or {clean_items[1]}"
+    return ", ".join(clean_items[:-1]) + f", or {clean_items[-1]}"
 
 
 def normalize_units(
@@ -88,12 +143,14 @@ def evaluate_single_condition(
     user_profile: UserProfile,
     user_units: Optional[Dict[Field_, str]] = None,
 ) -> Reason:
-    """Evaluate a single condition against the user profile."""
+    """Evaluate a single condition against the user profile using clear natural language sentences."""
+    field_title = _friendly_field(condition.field.value)
+
     if condition.field not in user_profile:
         return Reason(
             condition=condition,
             passed=None,
-            explanation=f"Missing answer for '{condition.field.value}' (Cited in {condition.clause_id})",
+            explanation=f"Awaiting your details for {field_title} to evaluate eligibility.",
         )
 
     raw_user_value = user_profile.get(condition.field)
@@ -115,14 +172,75 @@ def evaluate_single_condition(
             user_val = normalize_units(user_val, from_unit=user_unit, to_unit=condition.unit)
 
         passed = op_func(user_val, c_val)
-        symbol = OPERATOR_SYMBOLS.get(operator_key, operator_key)
-        status_label = "PASSED" if passed else "FAILED"
-        unit_str = f" {condition.unit}" if condition.unit else ""
+        user_str = _format_value_with_unit(user_val, condition.unit)
+        c_str = _format_value_with_unit(c_val, condition.unit)
 
-        explanation = (
-            f"Your {condition.field.value} of {user_val}{unit_str} {symbol} "
-            f"condition of {c_val}{unit_str} -> {status_label} (Clause {condition.clause_id})"
-        )
+        if operator_key == "lte":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which satisfies the requirement "
+                    f"of not exceeding {c_str}."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which exceeds the maximum allowed "
+                    f"limit of {c_str}."
+                )
+        elif operator_key == "lt":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which satisfies the limit "
+                    f"of less than {c_str}."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which must be strictly below {c_str}."
+                )
+        elif operator_key == "gte":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, meeting the minimum threshold "
+                    f"of {c_str}."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which is below the minimum required "
+                    f"threshold of {c_str}."
+                )
+        elif operator_key == "gt":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, exceeding the required baseline "
+                    f"of {c_str}."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which must be greater than {c_str}."
+                )
+        elif operator_key == "eq":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, matching the required value of {c_str}."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, but the scheme requires {c_str}."
+                )
+        elif operator_key == "neq":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which is not {c_str} as required."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is {user_str}, which is not permitted under this scheme."
+                )
+        else:
+            explanation = (
+                f"Your {field_title} is {user_str}, which {'meets' if passed else 'does not meet'} "
+                f"the required criteria of {c_str}."
+            )
+
         return Reason(condition=condition, passed=passed, explanation=explanation)
 
     # Boolean evaluation
@@ -130,11 +248,16 @@ def evaluate_single_condition(
         passed = bool(raw_user_value) == bool(cond_value)
         if operator_key == "neq":
             passed = not passed
-        status_label = "PASSED" if passed else "FAILED"
-        explanation = (
-            f"Your {condition.field.value} is {raw_user_value} -> {status_label} "
-            f"(Clause {condition.clause_id})"
-        )
+
+        if passed:
+            explanation = (
+                f"Your status for {field_title} fulfills the mandatory criteria specified in the circular."
+            )
+        else:
+            explanation = (
+                f"Your status for {field_title} does not fulfill the mandatory eligibility requirement."
+            )
+
         return Reason(condition=condition, passed=passed, explanation=explanation)
 
     # String / Categorical evaluation (case-insensitive)
@@ -146,19 +269,62 @@ def evaluate_single_condition(
         else:
             passed = op_func(raw_user_value, cond_value)
 
-        symbol = OPERATOR_SYMBOLS.get(operator_key, operator_key)
-        status_label = "PASSED" if passed else "FAILED"
-        explanation = (
-            f"Your {condition.field.value} ('{raw_user_value}') {symbol} "
-            f"'{cond_value}' -> {status_label} (Clause {condition.clause_id})"
-        )
+        if operator_key == "in":
+            allowed_str = _format_human_list(cond_value)
+            if passed:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', which is recognized as an eligible "
+                    f"category ({allowed_str})."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', but this scheme is exclusively "
+                    f"reserved for {allowed_str}."
+                )
+        elif operator_key == "not_in":
+            excluded_str = _format_human_list(cond_value)
+            if passed:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', which is eligible and not among "
+                    f"the excluded categories ({excluded_str})."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', which falls under the excluded "
+                    f"categories ({excluded_str})."
+                )
+        elif operator_key == "eq":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', which satisfies the required "
+                    f"specification of '{cond_value}'."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', whereas the scheme requires '{cond_value}'."
+                )
+        elif operator_key == "neq":
+            if passed:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', correctly excluding '{cond_value}'."
+                )
+            else:
+                explanation = (
+                    f"Your {field_title} is '{raw_user_value}', which is an excluded category."
+                )
+        else:
+            explanation = (
+                f"Your {field_title} is '{raw_user_value}', which {'meets' if passed else 'does not meet'} "
+                f"the policy condition."
+            )
+
         return Reason(condition=condition, passed=passed, explanation=explanation)
 
     # Fallback comparison
     passed = op_func(raw_user_value, cond_value)
-    status_label = "PASSED" if passed else "FAILED"
     explanation = (
-        f"Evaluation of {condition.field.value} -> {status_label} (Clause {condition.clause_id})"
+        f"Your {field_title} {'meets' if passed else 'does not meet'} "
+        f"the policy criteria."
     )
     return Reason(condition=condition, passed=passed, explanation=explanation)
 
@@ -189,16 +355,16 @@ def evaluate(
 
     if failed_reasons:
         status = VerdictStatus.NO
-        deciding_clauses = list({r.condition.clause_id for r in failed_reasons})
+        deciding_clauses = list({r.condition.clause_id for r in failed_reasons if r.condition and r.condition.clause_id})
+        clause_str = f" in clause(s): {', '.join(deciding_clauses)}" if deciding_clauses else ""
         summary = (
-            f"Not Eligible. Disqualified by {len(failed_reasons)} condition(s) "
-            f"in clause(s): {', '.join(deciding_clauses)}."
+            f"Not Eligible. Disqualified based on {len(failed_reasons)} condition(s){clause_str}."
         )
     elif missing_fields:
         status = VerdictStatus.MAYBE
-        field_names = [f.value for f in missing_fields]
+        field_names = [_friendly_field(f.value) for f in missing_fields]
         summary = (
-            f"Eligibility Pending. Requires answers for {len(missing_fields)} missing field(s): "
+            f"Eligibility Pending. Requires answers for {len(missing_fields)} missing detail(s): "
             f"{', '.join(field_names)}."
         )
     elif scheme.uncertain:
@@ -219,4 +385,3 @@ def evaluate(
         missing_fields=missing_fields,
         summary=summary,
     )
-
