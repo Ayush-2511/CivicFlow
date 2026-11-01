@@ -75,12 +75,6 @@ app.include_router(pipeline_router)
 app.include_router(session_router)
 
 
-@app.get("/", include_in_schema=False)
-async def root_redirect():
-    """Redirect root path to interactive Swagger documentation."""
-    return RedirectResponse(url="/docs")
-
-
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
     """Service health and capability probe."""
@@ -97,6 +91,17 @@ async def health_check() -> dict:
 async def list_verified_sources() -> list:
     """List verified official government scheme sources for live demo."""
     return sources_fetcher.get_verified_demo_sources()
+
+
+# Serve compiled frontend in production if built, otherwise redirect root to /docs
+frontend_dist = settings.BASE_DIR / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+else:
+    @app.get("/", include_in_schema=False)
+    async def root_redirect():
+        """Redirect root path to interactive Swagger documentation."""
+        return RedirectResponse(url="/docs")
 
 
 if __name__ == "__main__":

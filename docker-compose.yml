@@ -1,0 +1,26 @@
+services:
+  civicflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: civicflow-app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL_FAST=qwen/qwen3.8-27b
+      - GROQ_MODEL_STRONG=openai/gpt-oss-120b
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - civicflow_uploads:/app/uploads
+      - civicflow_audio:/app/audio_cache
+      - civicflow_db:/app/civicflow_checkpoints.sqlite
+    restart: unless-stopped
+
+volumes:
+  civicflow_uploads:
+  civicflow_audio:
+  civicflow_db:
+

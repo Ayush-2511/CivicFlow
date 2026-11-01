@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: civicflow
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL_FAST
+        value: qwen/qwen3.8-27b
+      - key: GROQ_MODEL_STRONG
+        value: openai/gpt-oss-120b
+      - key: GEMINI_API_KEY
+        sync: false
+
