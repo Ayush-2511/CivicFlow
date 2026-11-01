@@ -81,9 +81,16 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
       </div>
 
       {/* Plain Language Summary */}
-      <p className="text-sm sm:text-base font-medium text-slate-800 mb-5 leading-relaxed bg-white/80 p-3.5 rounded-xl border border-slate-200/60 shadow-sm">
-        {verdict.summary}
-      </p>
+      <div className="bg-white/80 p-3.5 rounded-xl border border-slate-200/60 shadow-sm mb-5">
+        <p className="text-sm sm:text-base font-medium text-slate-800 leading-relaxed">
+          {verdict.summary}
+        </p>
+        {isMaybe && verdict.missing_fields && verdict.missing_fields.length > 0 && (
+          <p className="text-xs font-bold text-amber-800 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-200">
+            👉 Answer the 2 missing questions in the card above to calculate your definitive YES/NO verdict!
+          </p>
+        )}
+      </div>
 
       {/* Criteria Pass/Fail Breakdown */}
       <div>

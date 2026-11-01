@@ -19,6 +19,7 @@ import {
   getPipelineStatus,
   submitAnswers,
   subscribePipelineEvents,
+  switchLanguage,
 } from './api';
 import { AlertCircle } from 'lucide-react';
 
@@ -32,6 +33,7 @@ export const App: React.FC = () => {
   const [runId, setRunId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSubmittingAnswers, setIsSubmittingAnswers] = useState<boolean>(false);
+  const [isSwitchingLanguage, setIsSwitchingLanguage] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>({
@@ -56,12 +58,44 @@ export const App: React.FC = () => {
   const refreshStatus = async (id: string) => {
     try {
       const snap = await getPipelineStatus(id);
+      const isWaiting =
+        snap.status === 'waiting_for_answers' ||
+        (snap as any).is_paused ||
+        (snap.questions && snap.questions.length > 0 && !snap.verdict);
+
       setPipelineStatus((prev) => ({
         ...prev,
         ...snap,
+        status: isWaiting ? 'waiting_for_answers' : (snap.verdict ? 'completed' : snap.status || prev.status),
+        questions: (snap.questions && snap.questions.length > 0) ? snap.questions : prev.questions,
       }));
+
+      if (isWaiting || snap.verdict || snap.error) {
+        setIsLoading(false);
+      }
     } catch (e) {
       console.warn('Failed to fetch status snapshot', e);
+    }
+  };
+
+  // Dynamic live language switcher without page reload
+  const handleLanguageChange = async (newLang: string) => {
+    setLanguage(newLang);
+
+    if (runId && (pipelineStatus.scheme || pipelineStatus.verdict || pipelineStatus.status === 'waiting_for_answers')) {
+      setIsSwitchingLanguage(true);
+      try {
+        const result = await switchLanguage(runId, newLang);
+        setPipelineStatus((prev) => ({
+          ...prev,
+          explainer: result.explainer || prev.explainer,
+          questions: result.questions && result.questions.length > 0 ? result.questions : prev.questions,
+        }));
+      } catch (err: any) {
+        console.warn('Dynamic language switch notice:', err);
+      } finally {
+        setIsSwitchingLanguage(false);
+      }
     }
   };
 
@@ -78,21 +112,26 @@ export const App: React.FC = () => {
       const res = await startPipeline(file, url, persona, language);
       setRunId(res.run_id);
 
+      // Periodic poller while processing
+      const pollTimer = setInterval(() => {
+        refreshStatus(res.run_id);
+      }, 1500);
+
       // Subscribe to real-time Server-Sent Events (SSE)
       const unsubscribe = subscribePipelineEvents(
         res.run_id,
         (eventData) => {
           console.log('[SSE Event]', eventData);
 
-          if (eventData.type === 'step_complete') {
+          if (eventData.type === 'trace' || eventData.type === 'step_complete') {
             setPipelineStatus((prev) => {
               const existingTrace = prev.trace || [];
               const updatedTrace: TraceStep[] = [
                 ...existingTrace.filter((t) => t.node !== eventData.node),
                 {
                   node: eventData.node,
-                  status: 'ok',
-                  latency_ms: eventData.latency_ms,
+                  status: eventData.status || 'ok',
+                  latency_ms: eventData.latency_ms || eventData.trace_entry?.ms,
                 },
               ];
               return {
@@ -101,12 +140,12 @@ export const App: React.FC = () => {
                 trace: updatedTrace,
               };
             });
-            // Fetch updated state when scheme or intermediate data is extracted
             refreshStatus(res.run_id);
           }
 
           if (eventData.type === 'interview_required') {
             setIsLoading(false);
+            clearInterval(pollTimer);
             setPipelineStatus((prev) => ({
               ...prev,
               status: 'waiting_for_answers',
@@ -115,14 +154,25 @@ export const App: React.FC = () => {
             refreshStatus(res.run_id);
           }
 
-          if (eventData.type === 'pipeline_complete') {
+          if (eventData.type === 'language_switched') {
+            setPipelineStatus((prev) => ({
+              ...prev,
+              explainer: eventData.explainer || prev.explainer,
+              questions: eventData.questions && eventData.questions.length > 0 ? eventData.questions : prev.questions,
+            }));
+            setIsSwitchingLanguage(false);
+          }
+
+          if (eventData.type === 'completed' || eventData.type === 'pipeline_complete') {
             setIsLoading(false);
+            clearInterval(pollTimer);
             refreshStatus(res.run_id);
           }
 
-          if (eventData.type === 'pipeline_error') {
+          if (eventData.type === 'error' || eventData.type === 'pipeline_error') {
             setIsLoading(false);
-            setErrorMessage(eventData.error || 'A processing error occurred');
+            clearInterval(pollTimer);
+            setErrorMessage(eventData.message || eventData.error || 'A processing error occurred');
           }
         },
         (err) => {
@@ -131,10 +181,13 @@ export const App: React.FC = () => {
         }
       );
 
-      // Initial snapshot fetch after 1.5 seconds
-      setTimeout(() => refreshStatus(res.run_id), 1500);
+      // Initial snapshot fetch after 1s
+      setTimeout(() => refreshStatus(res.run_id), 1000);
 
-      return () => unsubscribe();
+      return () => {
+        clearInterval(pollTimer);
+        unsubscribe();
+      };
     } catch (err: any) {
       setIsLoading(false);
       setErrorMessage(err.message || 'Failed to start pipeline');
@@ -154,11 +207,16 @@ export const App: React.FC = () => {
       setIsSubmittingAnswers(false);
       setIsLoading(true);
 
-      // Fetch the updated snapshot
-      setTimeout(async () => {
+      // Periodically poll for the resumed verdict and voice explainer
+      let attempts = 0;
+      const resumePoll = setInterval(async () => {
+        attempts++;
         await refreshStatus(runId);
-        setIsLoading(false);
-      }, 2000);
+        if (attempts >= 8) {
+          clearInterval(resumePoll);
+          setIsLoading(false);
+        }
+      }, 1200);
     } catch (err: any) {
       setIsSubmittingAnswers(false);
       setIsLoading(false);
@@ -184,7 +242,7 @@ export const App: React.FC = () => {
         persona={persona}
         setPersona={setPersona}
         language={language}
-        setLanguage={setLanguage}
+        setLanguage={handleLanguageChange}
         isBackendHealthy={isBackendHealthy}
       />
 
@@ -237,11 +295,29 @@ export const App: React.FC = () => {
           {/* Right Column (7 Cols): Dynamic Interview & Verdict Cards */}
           <div className="lg:col-span-7 space-y-6">
             {/* Dynamic Interview Card (Human-in-the-Loop) */}
-            {pipelineStatus.status === 'waiting_for_answers' &&
+            {((pipelineStatus.status === 'waiting_for_answers' &&
               pipelineStatus.questions &&
-              pipelineStatus.questions.length > 0 && (
+              pipelineStatus.questions.length > 0) ||
+              (pipelineStatus.verdict &&
+                pipelineStatus.verdict.status === 'MAYBE' &&
+                pipelineStatus.verdict.missing_fields &&
+                pipelineStatus.verdict.missing_fields.length > 0)) && (
                 <InterviewCard
-                  questions={pipelineStatus.questions}
+                  questions={
+                    pipelineStatus.questions && pipelineStatus.questions.length > 0
+                      ? pipelineStatus.questions
+                      : pipelineStatus.verdict.missing_fields.map((f) => ({
+                          field: f,
+                          question_text:
+                            f === 'business_type'
+                              ? 'What is your enterprise classification?'
+                              : f === 'annual_turnover'
+                              ? 'What is your business annual turnover in INR?'
+                              : `Please provide value for ${f.replace(/_/g, ' ')}`,
+                          input_type: f === 'business_type' ? 'choice' : 'number',
+                          choices: f === 'business_type' ? ['Micro', 'Small', 'Medium', 'Other'] : [],
+                        }))
+                  }
                   onSubmit={handleSubmitInterview}
                   isSubmitting={isSubmittingAnswers}
                   language={language}
@@ -255,7 +331,10 @@ export const App: React.FC = () => {
 
             {/* Regional Voice Player */}
             {pipelineStatus.explainer && (
-              <VoicePlayer explainer={pipelineStatus.explainer} />
+              <VoicePlayer
+                explainer={pipelineStatus.explainer}
+                isSwitchingLanguage={isSwitchingLanguage}
+              />
             )}
 
             {/* Action Checklist */}

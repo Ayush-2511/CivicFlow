@@ -12,6 +12,7 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.AGE: {
         "question_text": "What is your age in years?",
         "question_text_hi": "आपकी आयु (उम्र) कितने वर्ष है?",
+        "question_text_mr": "तुमचे वय किती वर्षे आहे?",
         "input_type": "number",
         "unit": "years",
         "min": 0,
@@ -20,6 +21,7 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.ANNUAL_INCOME: {
         "question_text": "What is your total annual household income in INR?",
         "question_text_hi": "आपकी कुल वार्षिक पारिवारिक आय (रुपये में) कितनी है?",
+        "question_text_mr": "तुमचे एकूण वार्षिक कौटुंबिक उत्पन्न (रुपयांमध्ये) किती आहे?",
         "input_type": "number",
         "unit": "INR",
         "min": 0,
@@ -28,6 +30,7 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.LAND_HECTARES: {
         "question_text": "How many hectares of cultivable land do you own?",
         "question_text_hi": "आपके पास कितनी हेक्टेयर कृषि भूमि है? (1 हेक्टेयर = 2.47 एकड़)",
+        "question_text_mr": "तुमच्याकडे किती हेक्टर शेतजमीन आहे? (१ हेक्टर = २.४७ एकर)",
         "input_type": "number",
         "unit": "hectares",
         "min": 0.0,
@@ -36,6 +39,7 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.STATE: {
         "question_text": "Which state or union territory do you reside in?",
         "question_text_hi": "आप किस राज्य या केंद्र शासित प्रदेश के निवासी हैं?",
+        "question_text_mr": "तुम्ही कोणत्या राज्यात किंवा केंद्रशासित प्रदेशात राहता?",
         "input_type": "choice",
         "options": [
             "All India", "Andhra Pradesh", "Assam", "Bihar", "Delhi", "Gujarat",
@@ -47,48 +51,59 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.CATEGORY: {
         "question_text": "Which social/economic category do you belong to?",
         "question_text_hi": "आप किस सामाजिक/आर्थिक वर्ग से संबंधित हैं?",
+        "question_text_mr": "तुम्ही कोणत्या सामाजिक/आर्थिक प्रवर्गातील आहात?",
         "input_type": "choice",
-        "options": ["General", "OBC", "SC", "ST", "EWS"],
+        "options": ["General", "OBC", "SC", "ST", "EWS", "Other"],
     },
     Field_.GENDER: {
         "question_text": "What is your gender?",
         "question_text_hi": "आपका लिंग क्या है?",
+        "question_text_mr": "तुमचे लिंग काय आहे?",
         "input_type": "choice",
         "options": ["Male", "Female", "Other"],
     },
     Field_.OCCUPATION: {
         "question_text": "What is your primary occupation?",
         "question_text_hi": "आपका मुख्य व्यवसाय क्या है?",
-        "input_type": "text",
-        "options": ["Farmer", "Artisan", "Small Business Owner", "Student", "Daily Wage Worker", "Other"],
+        "question_text_mr": "तुमचा मुख्य व्यवसाय कोणता आहे?",
+        "input_type": "choice",
+        "options": [
+            "Small Business Owner", "Micro Enterprise", "Farmer", "Retail Trade",
+            "Artisan", "Student", "Self Help Group", "Daily Wage Worker", "Other"
+        ],
     },
     Field_.IS_FARMER: {
         "question_text": "Are you or your family actively engaged in farming/agriculture?",
         "question_text_hi": "क्या आप या आपका परिवार कृषि/खेती से जुड़े हैं?",
+        "question_text_mr": "तुम्ही किंवा तुमचे कुटुंब शेतीशी जोडलेले आहात का?",
         "input_type": "boolean",
         "options": ["True", "False"],
     },
     Field_.IS_STUDENT: {
         "question_text": "Are you currently enrolled as a student?",
         "question_text_hi": "क्या आप वर्तमान में एक छात्र/विद्यार्थी हैं?",
+        "question_text_mr": "तुम्ही सध्या विद्यार्थी आहात का?",
         "input_type": "boolean",
         "options": ["True", "False"],
     },
     Field_.HAS_DISABILITY: {
         "question_text": "Do you have a certified disability (Divyangjan)?",
         "question_text_hi": "क्या आपके पास दिव्यांगता प्रमाण पत्र है?",
+        "question_text_mr": "तुमच्याकडे दिव्यांगत्व प्रमाणपत्र आहे का?",
         "input_type": "boolean",
         "options": ["True", "False"],
     },
     Field_.BUSINESS_TYPE: {
         "question_text": "What is your enterprise classification?",
         "question_text_hi": "आपके व्यवसाय/उद्यम का प्रकार क्या है?",
+        "question_text_mr": "तुमच्या व्यवसायाचा / उद्योगाचा प्रकार काय आहे?",
         "input_type": "choice",
         "options": ["Micro", "Small", "Medium", "Proprietorship", "Partnership", "Other"],
     },
     Field_.ANNUAL_TURNOVER: {
         "question_text": "What is your business annual turnover in INR?",
         "question_text_hi": "आपके व्यवसाय का वार्षिक टर्नओवर (रुपये में) कितना है?",
+        "question_text_mr": "तुमच्या व्यवसायाची वार्षिक उलाढाल (रुपयांमध्ये) किती आहे?",
         "input_type": "number",
         "unit": "INR",
         "min": 0,
@@ -97,6 +112,7 @@ FIELD_SPEC: Dict[Field_, dict] = {
     Field_.EMPLOYEES: {
         "question_text": "How many full-time employees are in your business?",
         "question_text_hi": "आपके व्यवसाय में कुल कितने कर्मचारी हैं?",
+        "question_text_mr": "तुमच्या व्यवसायात एकूण किती कर्मचारी आहेत?",
         "input_type": "number",
         "unit": "count",
         "min": 0,
@@ -122,6 +138,7 @@ def generate_interview_questions(
         if cond.field not in needed_fields and cond.field not in profile_answers:
             needed_fields.append(cond.field)
 
+    lang = (language or "en").lower().strip()
     questions: List[InterviewQuestion] = []
     for field in needed_fields:
         spec = FIELD_SPEC.get(
@@ -129,11 +146,17 @@ def generate_interview_questions(
             {
                 "question_text": f"Please provide your value for {field.value.replace('_', ' ')}",
                 "question_text_hi": f"कृपया {field.value} का विवरण दें",
+                "question_text_mr": f"कृपया {field.value} चे तपशील द्या",
                 "input_type": "text",
             },
         )
 
-        q_text = spec.get("question_text_hi") if language == "hi" else spec.get("question_text")
+        if lang == "hi":
+            q_text = spec.get("question_text_hi")
+        elif lang == "mr":
+            q_text = spec.get("question_text_mr")
+        else:
+            q_text = spec.get("question_text")
 
         questions.append(
             InterviewQuestion(
@@ -179,9 +202,9 @@ def validate_answer(field: Field_, raw_value: Any) -> Tuple[bool, Any, Optional[
             if isinstance(raw_value, bool):
                 return True, raw_value, None
             s = str(raw_value).strip().lower()
-            if s in ["true", "yes", "y", "1", "हाँ", "ha"]:
+            if s in ["true", "yes", "y", "1", "हाँ", "होय", "ha", "hoy"]:
                 return True, True, None
-            if s in ["false", "no", "n", "0", "नहीं", "nahi"]:
+            if s in ["false", "no", "n", "0", "नहीं", "नाही", "nahi"]:
                 return True, False, None
             return False, None, "Please answer with Yes/True or No/False."
 
@@ -192,11 +215,11 @@ def validate_answer(field: Field_, raw_value: Any) -> Tuple[bool, Any, Optional[
             for opt in options:
                 if opt.lower() == val_str.lower():
                     return True, opt, None
-            return False, None, f"Please select one of the allowed options: {', '.join(options)}."
+            # Allow "Other" or custom input for choice
+            return True, val_str, None
 
         # Default text
         return True, str(raw_value).strip(), None
 
     except ValueError:
         return False, None, f"Invalid format for {field.value}. Please enter a valid {input_type}."
-

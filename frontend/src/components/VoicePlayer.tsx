@@ -5,25 +5,54 @@ import { resolveAudioUrl } from '../api';
 
 interface VoicePlayerProps {
   explainer?: Explainer;
+  isSwitchingLanguage?: boolean;
 }
 
-export const VoicePlayer: React.FC<VoicePlayerProps> = ({ explainer }) => {
+const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
+  hi: 'Hindi (हिन्दी)',
+  mr: 'Marathi (मराठी)',
+  en: 'English',
+  ta: 'Tamil (தமிழ்)',
+  te: 'Telugu (తెలుగు)',
+  bn: 'Bengali (বাংলা)',
+};
+
+export const VoicePlayer: React.FC<VoicePlayerProps> = ({ explainer, isSwitchingLanguage }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Reset to first segment and pause when explainer language changes
+  useEffect(() => {
+    setCurrentSegmentIndex(0);
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [explainer?.language]);
+
+  // Pause immediately when actively switching language
+  useEffect(() => {
+    if (isSwitchingLanguage && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isSwitchingLanguage]);
+
   if (!explainer || !explainer.segments || explainer.segments.length === 0) {
     return null;
   }
 
-  const currentSegment: Segment = explainer.segments[currentSegmentIndex];
+  const currentSegment: Segment = explainer.segments[currentSegmentIndex] || explainer.segments[0];
   const audioSrc = currentSegment?.audio_url ? resolveAudioUrl(currentSegment.audio_url) : '';
 
   useEffect(() => {
     if (audioRef.current && audioSrc) {
       audioRef.current.src = audioSrc;
       audioRef.current.playbackRate = playbackSpeed;
+      audioRef.current.load();
       if (isPlaying) {
         audioRef.current.play().catch(() => setIsPlaying(false));
       }
@@ -70,6 +99,13 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ explainer }) => {
         onPause={() => setIsPlaying(false)}
       />
 
+      {isSwitchingLanguage && (
+        <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-2 text-xs text-amber-800">
+          <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <span>Regenerating regional voice audio & synchronized transcript...</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
         <div className="flex items-center space-x-2.5">
           <div className="p-2 bg-emerald-100 text-emerald-800 rounded-lg">
@@ -78,7 +114,7 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ explainer }) => {
           <div>
             <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center">
               <Sparkles className="w-3 h-3 mr-1" />
-              Regional Voice Explainer ({explainer.language.toUpperCase()})
+              Regional Voice Explainer ({LANGUAGE_DISPLAY_NAMES[explainer.language.toLowerCase()] || explainer.language.toUpperCase()})
             </span>
             <h3 className="text-sm sm:text-base font-bold text-slate-800">
               Listen in Your Language

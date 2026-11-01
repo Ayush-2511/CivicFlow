@@ -10,7 +10,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from langgraph.types import Command
 
-from app.graph import checkpointer, pipeline_graph
+from app.graph import checkpointer, pipeline_graph, get_llm, get_tts
+from app.nodes.compose import compose_explainer
+from app.nodes.interview import generate_interview_questions
+from app.nodes.voice import synthesize_explainer_voice
 from app.providers.sources import sources_fetcher
 from app.schemas import AudienceType
 
@@ -43,7 +46,30 @@ async def _run_graph_in_background(run_id: str, initial_state: dict) -> None:
 
         async for event in pipeline_graph.astream(initial_state, config=config):
             for node_name, node_output in event.items():
-                logger.info("Run %s completed node %s", run_id, node_name)
+                logger.info("Run %s event for node %s", run_id, node_name)
+
+                # Special handling for LangGraph interrupt event
+                if node_name == "__interrupt__":
+                    questions = []
+                    if isinstance(node_output, (list, tuple)) and len(node_output) > 0:
+                        intr = node_output[0]
+                        intr_val = getattr(intr, "value", intr)
+                        if isinstance(intr_val, dict):
+                            questions = intr_val.get("questions", [])
+                    elif isinstance(node_output, dict):
+                        questions = node_output.get("questions", [])
+
+                    logger.info("Run %s paused at interview with %d questions", run_id, len(questions))
+                    await queue.put({
+                        "type": "interview_required",
+                        "run_id": run_id,
+                        "questions": questions,
+                    })
+                    continue
+
+                if not isinstance(node_output, dict):
+                    continue
+
                 trace = node_output.get("trace", [])
                 latest_trace = trace[-1] if trace else {}
 
@@ -53,6 +79,7 @@ async def _run_graph_in_background(run_id: str, initial_state: dict) -> None:
                     "status": node_output.get("status", "ok"),
                     "trace_entry": latest_trace,
                     "summary": latest_trace.get("details", ""),
+                    "latency_ms": latest_trace.get("ms"),
                 })
 
                 # Check if paused for interview
@@ -61,7 +88,7 @@ async def _run_graph_in_background(run_id: str, initial_state: dict) -> None:
                     await queue.put({
                         "type": "interview_required",
                         "run_id": run_id,
-                        "questions": [q.model_dump() for q in questions],
+                        "questions": [q.model_dump() if hasattr(q, "model_dump") else q for q in questions],
                     })
 
                 # Check if completed
@@ -78,7 +105,21 @@ async def _run_graph_in_background(run_id: str, initial_state: dict) -> None:
         # Final check if pipeline paused
         state_snap = pipeline_graph.get_state(config)
         if state_snap.next and "interview" in state_snap.next:
-            pass  # Already paused and notified
+            questions = []
+            if state_snap.tasks:
+                for task in state_snap.tasks:
+                    interrupts = getattr(task, "interrupts", [])
+                    for intr in interrupts:
+                        intr_val = getattr(intr, "value", intr)
+                        if isinstance(intr_val, dict) and "questions" in intr_val:
+                            questions.extend(intr_val["questions"])
+
+            if questions:
+                await queue.put({
+                    "type": "interview_required",
+                    "run_id": run_id,
+                    "questions": questions,
+                })
 
     except Exception as e:
         logger.error("Error executing pipeline for run %s: %s", run_id, str(e), exc_info=True)
@@ -199,13 +240,33 @@ async def get_pipeline_status(run_id: str) -> dict:
     verdict = vals.get("verdict")
     explainer = vals.get("explainer")
 
+    # Extract pending interview questions if graph is paused at interrupt
+    questions = []
+    is_paused = False
+    if state_snap.tasks:
+        for task in state_snap.tasks:
+            interrupts = getattr(task, "interrupts", [])
+            for intr in interrupts:
+                intr_val = getattr(intr, "value", intr)
+                if isinstance(intr_val, dict) and "questions" in intr_val:
+                    questions.extend(intr_val["questions"])
+                    is_paused = True
+
+    if not questions:
+        raw_q = vals.get("questions", [])
+        questions = [q.model_dump() if hasattr(q, "model_dump") else q for q in raw_q]
+
+    status = "waiting_for_answers" if is_paused else vals.get("status", "processing")
+    if verdict:
+        status = "completed"
+
     return {
         "run_id": run_id,
-        "status": vals.get("status", "processing"),
+        "status": status,
         "doc_id": vals.get("doc_id"),
         "next_nodes": list(state_snap.next),
-        "is_paused": bool(state_snap.next and "interview" in state_snap.next),
-        "questions": [q.model_dump() for q in vals.get("questions", [])],
+        "is_paused": is_paused,
+        "questions": questions,
         "trace": vals.get("trace", []),
         "scheme": scheme.model_dump() if scheme else None,
         "verdict": verdict.model_dump() if verdict else None,
@@ -213,3 +274,75 @@ async def get_pipeline_status(run_id: str) -> dict:
         "error": vals.get("error"),
     }
 
+
+class SwitchLanguageRequest(BaseModel):
+    language: str
+
+
+@router.post("/{run_id}/switch-language")
+async def switch_language(run_id: str, req: SwitchLanguageRequest) -> dict:
+    """Dynamically switch language and regenerate localized explainer & regional voice without reloading."""
+    config = {"configurable": {"thread_id": run_id}}
+    state_snap = pipeline_graph.get_state(config)
+
+    if not state_snap or not state_snap.values:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found.")
+
+    vals = state_snap.values
+    scheme = vals.get("scheme")
+    verdict = vals.get("verdict")
+    persona_str = vals.get("persona", "citizen")
+    persona = AudienceType.BUSINESS if persona_str == "business" else AudienceType.CITIZEN
+    new_lang = req.language.lower().strip()
+
+    new_explainer = None
+    if scheme and verdict:
+        # Re-compose explainer in target language
+        new_explainer = await compose_explainer(
+            scheme=scheme,
+            verdict=verdict,
+            persona=persona,
+            language=new_lang,
+            llm=get_llm(),
+        )
+        # Re-synthesize speech in target language
+        doc_id = vals.get("doc_id", "unknown_doc")
+        new_explainer = await synthesize_explainer_voice(
+            explainer=new_explainer,
+            doc_id=doc_id,
+            tts=get_tts(),
+            language=new_lang,
+        )
+
+    # Regenerate interview questions in new language
+    questions = []
+    if scheme:
+        profile = vals.get("profile")
+        questions = generate_interview_questions(scheme, profile, language=new_lang)
+
+    # Update state in checkpointer
+    updated_values = {"language": new_lang}
+    if new_explainer:
+        updated_values["explainer"] = new_explainer
+    if questions:
+        updated_values["questions"] = questions
+
+    pipeline_graph.update_state(config, updated_values)
+
+    # Broadcast language switch to active SSE listeners
+    queue = RUN_EVENT_QUEUES.get(run_id)
+    if queue:
+        await queue.put({
+            "type": "language_switched",
+            "run_id": run_id,
+            "language": new_lang,
+            "explainer": new_explainer.model_dump() if new_explainer else None,
+            "questions": [q.model_dump() for q in questions],
+        })
+
+    return {
+        "run_id": run_id,
+        "language": new_lang,
+        "explainer": new_explainer.model_dump() if new_explainer else None,
+        "questions": [q.model_dump() for q in questions],
+    }

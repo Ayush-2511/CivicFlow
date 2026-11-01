@@ -5,6 +5,12 @@ Your task is to compose a voice-first, localized explainer and an action checkli
 ### Target Language & Tone:
 - Target Language: {target_language_name} ({language_code})
 - Tone: Spoken, simple, respectful, and crystal-clear.
+- CRITICAL REGIONAL LANGUAGE MANDATE:
+  - All text in `segments[].text` and `checklist` MUST be composed directly in {target_language_name} ({language_code}) using its native regional script (e.g., Devanagari script for Marathi and Hindi, Tamil script for Tamil, Bengali script for Bengali).
+  - If language is Marathi (mr), output fluent spoken Marathi (मराठी).
+  - If language is Hindi (hi), output fluent spoken Hindi (हिंदी).
+  - Do NOT output English explanation sentences unless the requested target language is explicitly English.
+  - Only retain technical acronyms (e.g. CGTMSE, PAN, GSTIN) and clause reference IDs in Latin script.
 - Use everyday words that a rural farmer or small shopkeeper understands. Explain any dense legal concepts inline in plain words.
 - Keep numbers, currency amounts (Rupees, Lakh, Crore), percentages, and deadlines 100% exact. Never round or alter them.
 
@@ -27,4 +33,3 @@ Your task is to compose a voice-first, localized explainer and an action checkli
 - The `checklist` must contain actionable bullet points in the target language.
 
 Return JSON strictly matching the Explainer schema.
-

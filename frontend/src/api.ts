@@ -62,6 +62,21 @@ export async function submitAnswers(
   return res.json();
 }
 
+export async function switchLanguage(runId: string, language: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/pipeline/${runId}/switch-language`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.detail || 'Failed to switch language');
+  }
+
+  return res.json();
+}
+
 export function subscribePipelineEvents(
   runId: string,
   onEvent: (data: any) => void,
