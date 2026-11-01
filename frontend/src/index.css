@@ -24,3 +24,40 @@ body {
   background: #94A3B8;
 }
 
+/* Print Styles: Crisp, official scheme dossier without voice snapshots or web controls */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    font-size: 11pt !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Force background colors and borders to print properly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent awkward card splitting across pages */
+  .print-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Hide interactive web elements */
+  header,
+  nav,
+  button,
+  audio,
+  .print-hide {
+    display: none !important;
+  }
+}

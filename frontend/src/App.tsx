@@ -7,6 +7,7 @@ import { InterviewCard } from './components/InterviewCard';
 import { VerdictCard } from './components/VerdictCard';
 import { VoicePlayer } from './components/VoicePlayer';
 import { ActionChecklist } from './components/ActionChecklist';
+import { SchemePrintReport } from './components/SchemePrintReport';
 import {
   AudienceType,
   PipelineStatus,
@@ -236,7 +237,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <>
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 print:hidden">
       {/* Top Navigation */}
       <Navbar
         persona={persona}
@@ -342,6 +344,7 @@ export const App: React.FC = () => {
               <ActionChecklist
                 explainer={pipelineStatus.explainer}
                 scheme={pipelineStatus.scheme}
+                verdict={pipelineStatus.verdict}
               />
             )}
           </div>
@@ -358,6 +361,16 @@ export const App: React.FC = () => {
         </div>
       </footer>
     </div>
-  );
+
+    {/* Dedicated Clean Print Dossier (Zero Voice Snapshots, Zero UI Controls, 100% Policy Intelligence) */}
+    <div className="hidden print:block">
+      <SchemePrintReport
+        scheme={pipelineStatus.scheme}
+        verdict={pipelineStatus.verdict}
+        explainer={pipelineStatus.explainer}
+      />
+    </div>
+  </>
+);
 };
 

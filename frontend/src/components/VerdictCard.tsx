@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, ArrowRight, ShieldCheck, Printer } from 'lucide-react';
 import { Verdict, Reason } from '../types';
 
 interface VerdictCardProps {
@@ -65,7 +65,7 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
           </div>
         </div>
 
-        <div className="text-right sm:self-center">
+        <div className="text-right sm:self-center flex items-center space-x-2">
           <span
             className={`text-xs font-bold px-3 py-1.5 rounded-full inline-block ${
               isYes
@@ -77,6 +77,14 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
           >
             Status: {verdict.status}
           </span>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg shadow-sm transition"
+            title="Print or Save Official Scheme Report"
+          >
+            <Printer className="w-3.5 h-3.5 text-slate-600" />
+            <span>Print Report</span>
+          </button>
         </div>
       </div>
 

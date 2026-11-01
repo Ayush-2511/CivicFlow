@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { CheckSquare, Square, Printer, CheckCircle, MapPin, Calendar, FileText } from 'lucide-react';
-import { Explainer, Scheme } from '../types';
+import { Explainer, Scheme, Verdict } from '../types';
 
 interface ActionChecklistProps {
   explainer?: Explainer;
   scheme?: Scheme;
+  verdict?: Verdict;
 }
 
-export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme }) => {
+export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme, verdict }) => {
   if (!explainer && !scheme) return null;
 
   const obligations = scheme?.obligations || [];
