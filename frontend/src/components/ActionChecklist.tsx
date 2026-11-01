@@ -56,9 +56,13 @@ export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, sch
   }
 
   // Extract explicit submission channels
-  const submissionChannels = obligations
-    .map((o) => o.apply_at)
-    .filter((a): a is string => Boolean(a && a.trim()));
+  const submissionChannels = Array.from(
+    new Set(
+      obligations
+        .map((o) => o.apply_at?.trim())
+        .filter((a): a is string => Boolean(a && a.length > 0))
+    )
+  );
 
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
 
