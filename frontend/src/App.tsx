@@ -8,6 +8,7 @@ import { VerdictCard } from './components/VerdictCard';
 import { VoicePlayer } from './components/VoicePlayer';
 import { VerdictVoicePlayer } from './components/VerdictVoicePlayer';
 import { ActionChecklist } from './components/ActionChecklist';
+import { ExtractionProgressCard } from './components/ExtractionProgressCard';
 import { SchemePrintReport } from './components/SchemePrintReport';
 import {
   AudienceType,
@@ -285,6 +286,14 @@ export const App: React.FC = () => {
             status={pipelineStatus.status}
             confidence={pipelineStatus.scheme?.confidence}
             onReset={handleReset}
+          />
+        )}
+
+        {/* Real-Time Extraction Progress & Countdown Timer */}
+        {isLoading && (
+          <ExtractionProgressCard
+            progress={pipelineStatus.progress}
+            isLoading={isLoading}
           />
         )}
 

@@ -12,6 +12,7 @@ from langgraph.types import Command
 
 from app.graph import checkpointer, pipeline_graph, get_llm, get_tts
 from app.nodes.compose import compose_explainer
+from app.nodes.extract import EXTRACTION_PROGRESS
 from app.nodes.interview import generate_interview_questions
 from app.nodes.voice import synthesize_explainer_voice
 from app.providers.sources import sources_fetcher
@@ -264,6 +265,7 @@ async def get_pipeline_status(run_id: str) -> dict:
         "run_id": run_id,
         "status": status,
         "doc_id": vals.get("doc_id"),
+        "progress": EXTRACTION_PROGRESS.get(run_id) or EXTRACTION_PROGRESS.get(vals.get("doc_id", "")),
         "next_nodes": list(state_snap.next),
         "is_paused": is_paused,
         "questions": questions,

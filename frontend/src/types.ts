@@ -84,11 +84,20 @@ export interface TraceStep {
   timestamp?: string;
 }
 
+export interface ExtractionProgress {
+  current_section: number;
+  total_sections: number;
+  percent: number;
+  estimated_seconds_remaining: number;
+  stage: string;
+}
+
 export interface PipelineStatus {
   run_id: string;
   status: 'started' | 'running' | 'waiting_for_answers' | 'completed' | 'error';
   current_node?: string;
   error?: string;
+  progress?: ExtractionProgress;
   scheme?: Scheme;
   questions?: InterviewQuestion[];
   verdict?: Verdict;

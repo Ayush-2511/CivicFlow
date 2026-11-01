@@ -213,6 +213,7 @@ async def node_extract(state: PipelineState) -> Dict[str, Any]:
             doc_id=state["doc_id"],
             llm=get_llm(),
             verify=False,  # verify happens in next dedicated node
+            run_id=state.get("run_id"),
         )
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
         trace_entry = {
