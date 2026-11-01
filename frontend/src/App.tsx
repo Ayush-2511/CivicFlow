@@ -73,7 +73,10 @@ export const App: React.FC = () => {
         questions: (snap.questions && snap.questions.length > 0) ? snap.questions : prev.questions,
       }));
 
-      if (isWaiting || snap.verdict || snap.error) {
+      if (snap.error) {
+        setIsLoading(false);
+        setErrorMessage(snap.error);
+      } else if (isWaiting || snap.verdict) {
         setIsLoading(false);
       }
     } catch (e) {
@@ -259,22 +262,74 @@ export const App: React.FC = () => {
           verifiedSources={verifiedSources}
         />
 
-        {/* Error Banner */}
+        {/* Enhanced Error Banner with Domain & Quality Guidance */}
         {errorMessage && (
-          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between text-rose-800 text-sm shadow-sm">
-            <div className="flex items-center space-x-2.5">
-              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
-              <div>
-                <p className="font-bold">Execution Error</p>
-                <p className="text-xs text-rose-700">{errorMessage}</p>
+          <div className="mb-6 p-5 bg-rose-50/95 border-2 border-rose-200 rounded-2xl shadow-sm text-rose-900 transition-all">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              <div className="flex items-start space-x-3.5">
+                <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 mt-0.5 flex-shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-rose-200/80 text-rose-800">
+                      {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible')
+                        ? 'Image Quality Check'
+                        : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy')
+                        ? 'Policy Domain Check'
+                        : errorMessage.toLowerCase().includes('rate limit')
+                        ? 'API Rate Limit'
+                        : 'Processing Error'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-rose-950 mb-1">
+                    {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible')
+                      ? 'Document Image Unreadable or Blurry'
+                      : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy')
+                      ? 'Non-Policy Document Uploaded'
+                      : errorMessage.toLowerCase().includes('rate limit')
+                      ? 'AI Provider Rate Limit Exceeded'
+                      : 'Unable to Process Document'}
+                  </h4>
+                  <p className="text-xs text-rose-800 leading-relaxed max-w-2xl">{errorMessage}</p>
+
+                  {/* Contextual Action Guidance */}
+                  <div className="mt-2.5 text-[11px] text-rose-800 bg-white/80 border border-rose-200 rounded-lg p-2.5 shadow-xs">
+                    {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible') ? (
+                      <span>
+                        📸 <strong>Guidance:</strong> Please upload a high-contrast, well-lit photo or digital PDF. Ensure the text lines are sharp, level, and not shadowed or cropped.
+                      </span>
+                    ) : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy') ? (
+                      <span>
+                        🏛️ <strong>Guidance:</strong> CivicFlow is specifically designed for <em>welfare policies, gazette orders, subsidy guidelines, and citizen acts</em>. Personal photos, recipes, invoices, or general text cannot be evaluated.
+                      </span>
+                    ) : errorMessage.toLowerCase().includes('rate limit') ? (
+                      <span>
+                        ⏳ <strong>Guidance:</strong> The AI provider has a rolling 60-second limit. Please wait 15–30 seconds and upload again.
+                      </span>
+                    ) : (
+                      <span>
+                        ℹ️ <strong>Guidance:</strong> Verify your document is a valid PDF or image file and try again.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 self-end sm:self-start flex-shrink-0">
+                <button
+                  onClick={handleReset}
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                >
+                  Upload Another File
+                </button>
+                <button
+                  onClick={() => setErrorMessage(null)}
+                  className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-900 font-medium"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
-            <button
-              onClick={() => setErrorMessage(null)}
-              className="text-xs underline font-medium hover:text-rose-950"
-            >
-              Dismiss
-            </button>
           </div>
         )}
 

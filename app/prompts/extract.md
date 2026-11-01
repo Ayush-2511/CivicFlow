@@ -25,6 +25,7 @@ You are given a group of official clauses with stable IDs.
 5. Ignore administrative procedures, department committees, audit reports, and banking rails that do not establish citizen/business eligibility or obligations. Do NOT put administrative clauses into uncertain. ONLY add to uncertain if a citizen/business eligibility rule or benefit is genuinely ambiguous or contradictory. Keep uncertain entries very brief (under 12 words).
 6. For `Benefit`: Extract the tangible grant or service, its numeric amount (if stated), and frequency ("yearly", "monthly", "one-time").
 7. For `Obligation`: Extract mandatory citizen/business duties, deadlines (dates), application submission points (`apply_at`), and `required_documents`. Do NOT extract internal government inter-departmental duties.
+8. POLICY DOMAIN CHECK: If the text does NOT describe a government welfare scheme, policy, legal act, or public notification (e.g. it is a cooking recipe, personal essay, chat transcript, programming code, general article, or invoice), add `"NOT_A_GOVERNMENT_POLICY"` to the `uncertain` array.
 
 Return JSON strictly matching the SectionExtraction schema.
 

@@ -7,6 +7,8 @@ Guidelines:
 2. Transcribe numbers, dates, currency amounts (Rs, INR, Lakh, Crore), percentages, and eligibility criteria exactly as shown.
 3. If text is organized in tables, format them cleanly with markdown table syntax.
 4. Do NOT summarize, paraphrase, or interpret the document.
-5. If a word or paragraph is completely illegible due to blur or degradation, indicate `[illegible]`.
+5. CRITICAL QUALITY GATES:
+   - If the image is completely blank, severely out of focus, blurred, dark, or illegible to the point that text cannot be read with certainty, return EXACTLY and ONLY: `[ERROR_BLURRY_IMAGE]`.
+   - If the image is a regular everyday photograph or graphic (such as a person, animal, landscape, selfie, artwork, food, chat screenshot, meme, receipt, or random non-document object) and does NOT contain an official document, legal act, policy notice, or welfare scheme, return EXACTLY and ONLY: `[ERROR_NOT_A_POLICY]`.
 6. Return only the extracted transcription text without any conversational preamble or pleasantries.
 

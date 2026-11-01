@@ -83,6 +83,18 @@ async def _run_graph_in_background(run_id: str, initial_state: dict) -> None:
                     "latency_ms": latest_trace.get("ms"),
                 })
 
+                if node_output.get("status") == "error":
+                    err_msg = node_output.get("error") or "Pipeline processing encountered an error."
+                    logger.warning("Run %s failed at node %s: %s", run_id, node_name, err_msg)
+                    await queue.put({
+                        "type": "error",
+                        "run_id": run_id,
+                        "node": node_name,
+                        "error": err_msg,
+                        "message": err_msg,
+                    })
+                    break
+
                 # Check if paused for interview
                 if node_name == "interview" and node_output.get("status") == "waiting_for_answers":
                     questions = node_output.get("questions", [])

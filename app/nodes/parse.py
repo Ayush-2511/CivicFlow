@@ -15,7 +15,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import List
 import pypdf
-from app.exceptions import UnreadableDocument
+from app.exceptions import NotAPolicy, UnreadableDocument
 from app.providers.base import LLM
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,9 @@ async def parse_document(
                     tier="fast",
                 )
                 clean_text = text.strip()
-                if clean_text and clean_text != "[illegible]":
+                if "[ERROR_NOT_A_POLICY]" in clean_text:
+                    raise NotAPolicy("Scanned document does not appear to be an official government policy, welfare scheme, or legal act. Please upload an official policy or scheme document.")
+                if clean_text and "[ERROR_BLURRY_IMAGE]" not in clean_text and clean_text != "[illegible]":
                     ocr_pages.append(PageText(page=page_idx, text=clean_text))
 
         if ocr_pages and sum(len(p.text) for p in ocr_pages) >= 50:
@@ -187,9 +189,20 @@ async def parse_document(
             raise UnreadableDocument(f"OCR processing failed for image: {str(e)}") from e
 
         cleaned = transcribed_text.strip()
-        if not cleaned or len(cleaned) < 30 or cleaned.lower() == "[illegible]":
+        if "[ERROR_NOT_A_POLICY]" in cleaned:
+            raise NotAPolicy(
+                "The uploaded image is not a government welfare scheme or legal policy. CivicFlow is specifically designed to analyze government welfare schemes, acts, and official gazette notifications. Please upload an official scheme document."
+            )
+        if (
+            not cleaned
+            or len(cleaned) < 30
+            or "[ERROR_BLURRY_IMAGE]" in cleaned
+            or cleaned.lower() == "[illegible]"
+            or "too blurry" in cleaned.lower()
+            or "cannot read" in cleaned.lower()
+        ):
             raise UnreadableDocument(
-                "Uploaded image is too blurry, dark, or illegible to transcribe. Please take a clearer photo."
+                "The uploaded image is too blurry, dark, or out of focus to read. Please upload a clear, legible photo or high-resolution scan."
             )
 
         return [PageText(page=1, text=cleaned)]

@@ -8,7 +8,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from app.exceptions import ProviderError
+from app.exceptions import NotAPolicy, ProviderError
 from app.nodes.verify import verify_scheme
 from app.providers.base import LLM
 from app.schemas import (
@@ -198,6 +198,29 @@ async def extract_scheme(
                 all_obligations.append(ob)
 
         all_uncertain.extend(sec.uncertain)
+
+    # Domain policy validation: ensure uploaded document is a genuine policy/scheme
+    is_explicit_non_policy = any(
+        "not_a_government_policy" in u.lower() or "not a government policy" in u.lower() or "not a policy" in u.lower()
+        for u in all_uncertain
+    )
+    if is_explicit_non_policy:
+        raise NotAPolicy(
+            "The uploaded document does not appear to be an official government policy, welfare scheme, or legal act. CivicFlow only processes government welfare schemes, policies, and municipal regulations."
+        )
+
+    if clauses and len(all_conditions) == 0 and len(all_benefits) == 0 and len(all_obligations) == 0:
+        sample_text = " ".join(c.text for c in clauses[:5]).lower()
+        civic_keywords = [
+            "scheme", "policy", "guideline", "guidelines", "government", "ministry",
+            "department", "yojana", "act", "gazette", "beneficiary", "beneficiaries",
+            "eligibility", "grant", "subsidy", "assistance", "notification", "shasan",
+            "kisan", "pradhan", "mantri", "panchayat", "municipal", "rules", "welfare"
+        ]
+        if not any(kw in sample_text for kw in civic_keywords):
+            raise NotAPolicy(
+                "The uploaded document does not contain any government welfare scheme, policy rules, or citizen rights. Please upload an official government policy or scheme document."
+            )
 
     raw_scheme = Scheme(
         doc_id=doc_id,

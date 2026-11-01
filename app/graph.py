@@ -472,6 +472,18 @@ def route_after_parse(state: PipelineState) -> str:
     return "index"
 
 
+def route_after_index(state: PipelineState) -> str:
+    if state.get("status") == "error":
+        return END
+    return "extract"
+
+
+def route_after_extract(state: PipelineState) -> str:
+    if state.get("status") == "error":
+        return END
+    return "verify"
+
+
 def route_after_verify(state: PipelineState) -> str:
     """Proceed to interview. Uncertain claims are safely tracked for deterministic evaluation."""
     if state.get("status") == "error":
@@ -507,8 +519,8 @@ def build_graph() -> StateGraph:
 
     builder.add_edge("ingest", "parse")
     builder.add_conditional_edges("parse", route_after_parse, {"index": "index", END: END})
-    builder.add_edge("index", "extract")
-    builder.add_edge("extract", "verify")
+    builder.add_conditional_edges("index", route_after_index, {"extract": "extract", END: END})
+    builder.add_conditional_edges("extract", route_after_extract, {"verify": "verify", END: END})
     builder.add_conditional_edges(
         "verify", route_after_verify, {"interview": "interview", END: END}
     )
