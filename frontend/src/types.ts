@@ -42,7 +42,10 @@ export interface InterviewQuestion {
   field: string;
   question_text: string;
   input_type: string;
-  choices: string[];
+  options?: string[];
+  choices?: string[];
+  unit?: string;
+  default_value?: any;
   help_text?: string;
 }
 

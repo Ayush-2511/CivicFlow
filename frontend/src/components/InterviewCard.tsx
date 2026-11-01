@@ -43,11 +43,20 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
 };
 
 const DEFAULT_OPTIONS: Record<string, string[]> = {
+  state: [
+    "All India", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
+    "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Jammu and Kashmir", "Other"
+  ],
+  category: ["General", "OBC", "SC", "ST", "EWS", "Other"],
+  gender: ["Male", "Female", "Other", "All"],
   business_type: ["Micro", "Small", "Medium", "Proprietorship", "Partnership", "Other"],
   occupation: [
+    "Farmer",
     "Small Business Owner",
     "Micro Enterprise",
-    "Farmer",
     "Retail Trade",
     "Artisan",
     "Student",
@@ -172,17 +181,18 @@ export const InterviewCard: React.FC<InterviewCardProps> = ({
           const isMoney = field.includes('income') || field.includes('turnover');
           const isBoolean = q.input_type === 'boolean';
           
-          // Dropdown fields: any field other than numbers/money/land, or explicitly business_type/occupation/choice
-          const isDropdown = !isMoney && !isLand && !isBoolean;
+          // Dropdown fields: choice fields or fields with defined options
+          const serverOptions = q.options || q.choices;
+          const isDropdown = q.input_type === 'choice' || (!isMoney && !isLand && !isBoolean && (Boolean(serverOptions?.length) || Boolean(DEFAULT_OPTIONS[field])));
 
           let dropdownOptions: string[] = [];
           if (isDropdown) {
-            if (q.choices && q.choices.length > 0) {
-              dropdownOptions = [...q.choices];
+            if (serverOptions && serverOptions.length > 0) {
+              dropdownOptions = [...serverOptions];
             } else if (DEFAULT_OPTIONS[field]) {
               dropdownOptions = [...DEFAULT_OPTIONS[field]];
             } else {
-              dropdownOptions = ["Micro", "Small", "Medium", "Other"];
+              dropdownOptions = ["Yes", "No", "Other"];
             }
             if (!dropdownOptions.includes("Other")) {
               dropdownOptions.push("Other");
@@ -205,7 +215,7 @@ export const InterviewCard: React.FC<InterviewCardProps> = ({
                       className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 appearance-none pr-8 cursor-pointer"
                     >
                       <option value="">
-                        -- {language === 'mr' ? 'पर्याय निवडा' : language === 'hi' ? 'विकल्प चुनें' : 'Select your classification'} --
+                        -- {language === 'mr' ? 'पर्याय निवडा' : language === 'hi' ? 'विकल्प चुनें' : field === 'state' ? 'Select State / UT' : field === 'category' ? 'Select Category' : field === 'business_type' ? 'Select Classification' : 'Select an option'} --
                       </option>
                       {dropdownOptions.map((opt) => (
                         <option key={opt} value={opt}>

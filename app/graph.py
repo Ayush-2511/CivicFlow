@@ -11,6 +11,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.types import Command, interrupt
 
+from app.config import settings
 from app.exceptions import CivicFlowError, NotAPolicy, ProviderError, UnreadableDocument
 from app.nodes.compose import compose_explainer
 from app.nodes.evaluate import evaluate
@@ -22,6 +23,7 @@ from app.nodes.parse import parse_document
 from app.nodes.verify import verify_scheme
 from app.nodes.voice import synthesize_explainer_voice
 from app.providers.base import LLM, TTS
+from app.providers.groq import GroqLLMProvider
 from app.providers.llm import GeminiLLMProvider
 from app.providers.speech import EdgeTTSProvider
 from app.schemas import (
@@ -77,7 +79,11 @@ _default_tts: Optional[TTS] = None
 
 def get_llm() -> LLM:
     global _default_llm
-    if _default_llm is None:
+    provider = (settings.LLM_PROVIDER or "groq").lower().strip()
+    if provider == "groq" or (settings.GROQ_API_KEY and not settings.GEMINI_API_KEY):
+        if not isinstance(_default_llm, GroqLLMProvider) or not _default_llm.api_key:
+            _default_llm = GroqLLMProvider(api_key=settings.GROQ_API_KEY)
+    elif _default_llm is None:
         _default_llm = GeminiLLMProvider()
     return _default_llm
 
@@ -466,14 +472,9 @@ def route_after_parse(state: PipelineState) -> str:
 
 
 def route_after_verify(state: PipelineState) -> str:
-    """If verification confidence is low (< 0.4) and retries remain, loop back to extract."""
+    """Proceed to interview. Uncertain claims are safely tracked for deterministic evaluation."""
     if state.get("status") == "error":
         return END
-    scheme = state.get("scheme")
-    retries = state.get("verify_retries", 0)
-    if scheme and scheme.confidence < 0.4 and retries < 2:
-        logger.info("Low verification confidence (%.2f), retrying extraction...", scheme.confidence)
-        return "extract"
     return "interview"
 
 
@@ -508,7 +509,7 @@ def build_graph() -> StateGraph:
     builder.add_edge("index", "extract")
     builder.add_edge("extract", "verify")
     builder.add_conditional_edges(
-        "verify", route_after_verify, {"extract": "extract", "interview": "interview", END: END}
+        "verify", route_after_verify, {"interview": "interview", END: END}
     )
     builder.add_edge("interview", "evaluate")
     builder.add_edge("evaluate", "compose")

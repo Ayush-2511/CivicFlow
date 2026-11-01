@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, Headphones, ShieldCheck, Sparkles } from 'lucide-react';
+import { Play, Pause, Volume2, Headphones, Sparkles } from 'lucide-react';
 import { Explainer, Verdict } from '../types';
 import { resolveAudioUrl } from '../api';
 

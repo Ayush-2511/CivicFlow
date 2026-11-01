@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertCircle, ArrowRight, ShieldCheck, Printer } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, ShieldCheck, Printer } from 'lucide-react';
 import { Verdict, Reason } from '../types';
 
 interface VerdictCardProps {

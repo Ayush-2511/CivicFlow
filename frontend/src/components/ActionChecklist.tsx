@@ -8,7 +8,7 @@ interface ActionChecklistProps {
   verdict?: Verdict;
 }
 
-export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme, verdict }) => {
+export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme }) => {
   if (!explainer && !scheme) return null;
 
   const obligations = scheme?.obligations || [];

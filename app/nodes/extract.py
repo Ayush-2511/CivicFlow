@@ -29,8 +29,12 @@ def _load_prompt(filename: str) -> str:
     return prompt_path.read_text(encoding="utf-8").strip()
 
 
-def group_clauses(clauses: List[Clause], max_chars: int = 2500) -> List[List[Clause]]:
-    """Group clauses into cohesive sections of manageable size for concurrent extraction."""
+def group_clauses(clauses: List[Clause], max_chars: int = 7000) -> List[List[Clause]]:
+    """Group clauses into cohesive sections of manageable size for rate-safe extraction.
+
+    Uses balanced context-aware chunks (~7,000 chars / ~1,700 tokens) to minimize
+    token rate-limit impact while keeping LLM reasoning sharp and structured.
+    """
     groups: List[List[Clause]] = []
     current_group: List[Clause] = []
     current_chars = 0
@@ -70,7 +74,7 @@ async def extract_from_section(
             prompt=user_prompt,
             schema=SectionExtraction,
             system_instruction=extract_prompt,
-            tier="strong",
+            tier="fast",
         )
         return extraction
     except Exception as e:
@@ -91,10 +95,14 @@ async def extract_scheme(
     if not clauses:
         return Scheme(doc_id=doc_id, title="Empty Document", confidence=0.0)
 
-    # 1. Group clauses and extract concurrently
-    sections = group_clauses(clauses)
-    tasks = [extract_from_section(sec, doc_id, llm) for sec in sections]
-    section_results: List[SectionExtraction] = await asyncio.gather(*tasks)
+    # 1. Group clauses and extract with pacing to preserve token rate limits
+    sections = group_clauses(clauses, max_chars=8000)
+    section_results: List[SectionExtraction] = []
+    for idx, sec in enumerate(sections):
+        if idx > 0:
+            await asyncio.sleep(1.0)
+        res = await extract_from_section(sec, doc_id, llm)
+        section_results.append(res)
 
     # 2. Merge and deduplicate
     title = "Government Policy Document"

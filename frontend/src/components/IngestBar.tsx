@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Link as LinkIcon, FileText, X, Sparkles, CheckCircle2, FileCheck } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, FileText, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { VerifiedSource } from '../types';
 
 const PM_KISAN_DEMO_TEXT = `MINISTRY OF AGRICULTURE AND FARMERS WELFARE

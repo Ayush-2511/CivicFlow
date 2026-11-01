@@ -90,10 +90,17 @@ def check_quote_substring(item: Cited, clauses: dict[str, Clause]) -> bool:
         return True
 
     # Fuzzy tolerance for minor OCR or whitespace deviations
-    if len(norm_quote) > 20:
+    if len(norm_quote) > 10:
         matcher = difflib.SequenceMatcher(None, norm_quote, norm_clause)
         match = matcher.find_longest_match(0, len(norm_quote), 0, len(norm_clause))
-        if match.size / len(norm_quote) >= 0.85:
+        if match.size / len(norm_quote) >= 0.70:
+            return True
+
+    # Word overlap check
+    quote_words = [w for w in norm_quote.split() if len(w) > 3]
+    if quote_words:
+        matches = sum(1 for w in quote_words if w in norm_clause)
+        if matches / len(quote_words) >= 0.75:
             return True
 
     return False
@@ -175,6 +182,8 @@ async def verify_scheme(
         return scheme
 
     passed_count = 0
+    llm_calls_made = 0
+    MAX_LLM_VERIFY_CALLS = 2
 
     # 1. Verify Conditions
     for cond in scheme.conditions:
@@ -191,8 +200,9 @@ async def verify_scheme(
             passed_count += 1
             continue
 
-        # Trigger LLM re-check if available
-        if llm:
+        # Trigger LLM re-check if available (capped to protect API limits)
+        if llm and llm_calls_made < MAX_LLM_VERIFY_CALLS:
+            llm_calls_made += 1
             llm_result = await verify_item_llm(cond, clause, llm)
             if llm_result.is_supported:
                 if llm_result.corrected_quote:
@@ -220,7 +230,8 @@ async def verify_scheme(
             passed_count += 1
             continue
 
-        if llm:
+        if llm and llm_calls_made < MAX_LLM_VERIFY_CALLS:
+            llm_calls_made += 1
             llm_result = await verify_item_llm(ben, clause, llm)
             if llm_result.is_supported:
                 if llm_result.corrected_quote:

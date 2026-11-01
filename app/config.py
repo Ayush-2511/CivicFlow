@@ -29,9 +29,17 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # LLM Provider Configuration
+    LLM_PROVIDER: str = "groq"          # "groq" | "gemini"
     GEMINI_API_KEY: str = ""
     MODEL_FAST: str = "gemini-3-flash-preview"
     MODEL_STRONG: str = "gemini-3-flash-preview"
+
+    # Groq Configuration (Ultra-fast free LPU inference)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL_FAST: str = "openai/gpt-oss-20b"
+    GROQ_MODEL_STRONG: str = "openai/gpt-oss-120b"
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+
     LLM_TIMEOUT_SECONDS: int = 30
     MAX_RETRIES: int = 3
 

@@ -42,10 +42,12 @@ FIELD_SPEC: Dict[Field_, dict] = {
         "question_text_mr": "तुम्ही कोणत्या राज्यात किंवा केंद्रशासित प्रदेशात राहता?",
         "input_type": "choice",
         "options": [
-            "All India", "Andhra Pradesh", "Assam", "Bihar", "Delhi", "Gujarat",
-            "Haryana", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra",
-            "Odisha", "Punjab", "Rajasthan", "Tamil Nadu", "Telangana",
-            "Uttar Pradesh", "West Bengal", "Other"
+            "All India", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+            "Chhattisgarh", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh",
+            "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra",
+            "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+            "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+            "Uttar Pradesh", "Uttarakhand", "West Bengal", "Jammu and Kashmir", "Other"
         ],
     },
     Field_.CATEGORY: {
@@ -215,8 +217,7 @@ def validate_answer(field: Field_, raw_value: Any) -> Tuple[bool, Any, Optional[
             for opt in options:
                 if opt.lower() == val_str.lower():
                     return True, opt, None
-            # Allow "Other" or custom input for choice
-            return True, val_str, None
+            return False, None, f"Invalid choice '{val_str}'. Please select from allowed options: {', '.join(options)}."
 
         # Default text
         return True, str(raw_value).strip(), None

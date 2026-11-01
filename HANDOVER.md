@@ -124,7 +124,13 @@ Create your `.env` file by copying `.env.example`:
 Open `.env` and paste your Gemini API key:
 ```env
 # Mandatory LLM Provider Configuration
-GEMINI_API_KEY=AIzaSyYourGeneratedGeminiKeyHere
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL_FAST=llama-3.1-8b-instant
+GROQ_MODEL_STRONG=llama-3.3-70b-versatile
+
+# Gemini Configuration (Fallback)
+GEMINI_API_KEY=your_gemini_api_key_here
 MODEL_FAST=gemini-3-flash-preview
 MODEL_STRONG=gemini-3-flash-preview
 LLM_TIMEOUT_SECONDS=30

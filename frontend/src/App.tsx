@@ -317,7 +317,7 @@ export const App: React.FC = () => {
                   questions={
                     pipelineStatus.questions && pipelineStatus.questions.length > 0
                       ? pipelineStatus.questions
-                      : pipelineStatus.verdict.missing_fields.map((f) => ({
+                      : (pipelineStatus.verdict?.missing_fields || []).map((f) => ({
                           field: f,
                           question_text:
                             f === 'business_type'

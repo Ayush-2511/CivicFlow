@@ -18,7 +18,7 @@ VERIFIED_GOV_SOURCES = [
     {
         "title": "PM Kisan Samman Nidhi Operational Guidelines",
         "ministry": "Ministry of Agriculture & Farmers Welfare",
-        "url": "https://pmkisan.gov.in/Documents/RevisedGuidelines.pdf",
+        "url": "https://pmkisan.gov.in/Documents/RevisedPM-KISANOperationalGuidelines(English).pdf",
         "category": "agriculture",
     },
     {
@@ -56,22 +56,39 @@ class OfficialSourceFetcher:
             "User-Agent": "CivicFlow-PolicyExplainer/0.1 (+https://github.com/Ayush-2511/CivicFlow)"
         }
 
+        async def _do_fetch(verify: bool) -> httpx.Response:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True, verify=verify) as client:
+                return await client.get(url, headers=headers)
+
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                response = await client.get(url, headers=headers)
-                if response.status_code != 200:
-                    raise ProviderError(
-                        f"Failed to fetch document from {url}: HTTP {response.status_code}",
-                        details={"status_code": response.status_code, "url": url},
+            try:
+                response = await _do_fetch(verify=True)
+            except httpx.ConnectError as e:
+                # Many Indian government portals (.gov.in, .nic.in) use national CAs (e.g. NIC/CCA)
+                # that are not in standard Python/certifi trust stores. Retry with verify=False.
+                err_msg = str(e).lower()
+                if "certificate_verify_failed" in err_msg or "certificate verify failed" in err_msg:
+                    logger.warning(
+                        "SSL certificate verification failed for official portal %s. Retrying with insecure transport for government domain...",
+                        url,
                     )
+                    response = await _do_fetch(verify=False)
+                else:
+                    raise
 
-                content_type = response.headers.get("content-type", "application/pdf").split(";")[0].strip()
-                content = response.content
+            if response.status_code != 200:
+                raise ProviderError(
+                    f"Failed to fetch document from {url}: HTTP {response.status_code}",
+                    details={"status_code": response.status_code, "url": url},
+                )
 
-                if not content:
-                    raise ProviderError(f"Remote document from {url} is empty.")
+            content_type = response.headers.get("content-type", "application/pdf").split(";")[0].strip()
+            content = response.content
 
-                return content, filename, content_type
+            if not content:
+                raise ProviderError(f"Remote document from {url} is empty.")
+
+            return content, filename, content_type
 
         except httpx.RequestError as e:
             logger.error("HTTP request failed for URL %s: %s", url, str(e))

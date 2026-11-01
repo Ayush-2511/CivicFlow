@@ -22,9 +22,9 @@ You are given a group of official clauses with stable IDs.
    - `annual_turnover`: Business turnover per annum in INR.
    - `employees`: Number of permanent or contract employees.
 4. For `Condition.operator`, choose strictly from: `lt`, `lte`, `gt`, `gte`, `eq`, `neq`, `in`, `not_in`.
-5. If an eligibility condition cannot be mapped cleanly to one of the above fields, or if a clause is ambiguous, contradictory, or complex legal jargon, DO NOT INVENT A FIELD. Instead, add a descriptive warning string to the `uncertain` list.
+5. Ignore administrative procedures, department committees, audit reports, and banking rails that do not establish citizen/business eligibility or obligations. Do NOT put administrative clauses into uncertain. ONLY add to uncertain if a citizen/business eligibility rule or benefit is genuinely ambiguous or contradictory. Keep uncertain entries very brief (under 12 words).
 6. For `Benefit`: Extract the tangible grant or service, its numeric amount (if stated), and frequency ("yearly", "monthly", "one-time").
-7. For `Obligation`: Extract mandatory citizen/business duties, deadlines (dates), application submission points (`apply_at`), and `required_documents`.
+7. For `Obligation`: Extract mandatory citizen/business duties, deadlines (dates), application submission points (`apply_at`), and `required_documents`. Do NOT extract internal government inter-departmental duties.
 
 Return JSON strictly matching the SectionExtraction schema.
 
