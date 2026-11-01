@@ -5,7 +5,7 @@ Rule: Do not change these contracts without team consensus.
 """
 
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -140,7 +140,8 @@ class Segment(BaseModel):
 class Explainer(BaseModel):
     """Complete voice explainer and action checklist in the target language."""
     language: str                   # ISO 639-1 code (e.g., "hi", "en", "mr")
-    segments: list[Segment]
+    verdict_segment: Optional[Segment] = None  # Dedicated regional voice for personal eligibility verdict
+    segments: list[Segment] = Field(default_factory=list)  # Comprehensive scheme policy explanation
     checklist: list[str] = Field(default_factory=list)
     audio_urls: list[str] = Field(default_factory=list)
 
@@ -179,4 +180,3 @@ class VerificationResult(BaseModel):
     is_supported: bool
     reason: str
     corrected_quote: str | None = None
-

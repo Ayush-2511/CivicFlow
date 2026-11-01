@@ -4,12 +4,14 @@ Implements smart-order extraction:
 1. Native digital PDF text layer (instant, free)
 2. Vision LLM OCR fallback for scanned PDFs
 3. Direct Vision LLM OCR for camera photos and images
-4. Quality gate raising UnreadableDocument on blurry or empty inputs
+4. HTML / Web notice text extraction for live portal pages
+5. Quality gate raising UnreadableDocument on blurry or empty inputs
 """
 
 import io
 import logging
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import List
 import pypdf
@@ -24,6 +26,41 @@ class PageText:
     """Represents verbatim text extracted from a document page."""
     page: int
     text: str
+
+
+class HTMLTextExtractor(HTMLParser):
+    """Clean text extractor from HTML web notices and portals."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.pieces: list[str] = []
+        self._ignore_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style", "nav", "header", "footer", "svg", "head", "noscript"):
+            self._ignore_depth += 1
+        elif tag_lower in ("p", "div", "br", "h1", "h2", "h3", "h4", "li", "tr"):
+            self.pieces.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style", "nav", "header", "footer", "svg", "head", "noscript"):
+            if self._ignore_depth > 0:
+                self._ignore_depth -= 1
+        elif tag_lower in ("p", "div", "h1", "h2", "h3", "h4", "li", "tr"):
+            self.pieces.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if self._ignore_depth == 0:
+            cleaned = data.strip()
+            if cleaned:
+                self.pieces.append(cleaned + " ")
+
+    def get_text(self) -> str:
+        raw = "".join(self.pieces)
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        return "\n".join(lines)
 
 
 def _load_prompt(filename: str) -> str:
@@ -56,6 +93,24 @@ async def parse_document(
             return [PageText(page=1, text=text)]
         except UnicodeDecodeError as e:
             raise UnreadableDocument(f"Could not decode text document: {str(e)}") from e
+
+    # 0b. HTML web notices and portals (.html, web pages)
+    if content_type == "text/html" or raw_bytes.strip().lower().startswith((b"<!doctype html", b"<html")):
+        try:
+            html_content = raw_bytes.decode("utf-8", errors="replace")
+            extractor = HTMLTextExtractor()
+            extractor.feed(html_content)
+            extracted_text = extractor.get_text()
+
+            if len(extracted_text) < 30:
+                raise UnreadableDocument(
+                    "Government notice webpage contains insufficient textual content or could not be parsed."
+                )
+            return [PageText(page=1, text=extracted_text)]
+        except Exception as e:
+            if isinstance(e, UnreadableDocument):
+                raise
+            raise UnreadableDocument(f"Failed to parse government web notice HTML: {str(e)}") from e
 
     # 1. Digital PDF parsing
     if content_type == "application/pdf" or raw_bytes.startswith(b"%PDF-"):
@@ -140,4 +195,3 @@ async def parse_document(
         return [PageText(page=1, text=cleaned)]
 
     raise UnreadableDocument(f"Unsupported document content type: '{content_type}'")
-

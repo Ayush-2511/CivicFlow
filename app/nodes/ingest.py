@@ -38,6 +38,11 @@ def detect_content_type(raw_bytes: bytes, filename: str) -> str:
     if raw_bytes.startswith(b"RIFF") and b"WEBP" in raw_bytes[:16]:
         return "image/webp"
 
+    # HTML / web notice detection
+    trimmed = raw_bytes.strip().lower()
+    if trimmed.startswith((b"<!doctype html", b"<html", b"<?xml")):
+        return "text/html"
+
     ext = Path(filename).suffix.lower()
     if ext == ".pdf":
         return "application/pdf"
@@ -49,6 +54,8 @@ def detect_content_type(raw_bytes: bytes, filename: str) -> str:
         return "image/webp"
     if ext in [".txt", ".md"]:
         return "text/plain"
+    if ext in [".html", ".htm"]:
+        return "text/html"
 
     return "application/octet-stream"
 
@@ -100,4 +107,3 @@ async def ingest_document(
         is_cached=is_cached,
         cached_clauses=cached_clauses if is_cached else None,
     )
-

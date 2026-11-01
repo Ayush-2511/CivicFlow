@@ -60,27 +60,40 @@ async def synthesize_explainer_voice(
     tts: TTS,
     language: Optional[str] = None,
 ) -> Explainer:
-    """Synthesize voice audio for all explainer segments in parallel.
+    """Synthesize voice audio for all explainer segments and verdict segment in parallel.
 
     Updates each Segment with its audio_url and populates explainer.audio_urls.
     """
-    if not explainer.segments:
-        return explainer
-
     target_lang = (language or explainer.language or "hi").lower().strip()
+    tasks = []
 
-    tasks = [
-        _synthesize_single_segment(
-            segment=seg,
-            idx=idx,
-            doc_id=doc_id,
-            language=target_lang,
-            tts=tts,
+    # 1. Synthesize targeted personal eligibility verdict voice if present
+    if explainer.verdict_segment and explainer.verdict_segment.text.strip():
+        tasks.append(
+            _synthesize_single_segment(
+                segment=explainer.verdict_segment,
+                idx=99,
+                doc_id=f"{doc_id}_verdict",
+                language=target_lang,
+                tts=tts,
+            )
         )
-        for idx, seg in enumerate(explainer.segments)
-    ]
 
-    audio_urls: List[str] = await asyncio.gather(*tasks)
-    explainer.audio_urls = [url for url in audio_urls if url]
+    # 2. Synthesize all comprehensive policy explainer segments
+    if explainer.segments:
+        for idx, seg in enumerate(explainer.segments):
+            tasks.append(
+                _synthesize_single_segment(
+                    segment=seg,
+                    idx=idx,
+                    doc_id=doc_id,
+                    language=target_lang,
+                    tts=tts,
+                )
+            )
+
+    if tasks:
+        audio_urls: List[str] = await asyncio.gather(*tasks)
+        explainer.audio_urls = [url for url in audio_urls if url]
 
     return explainer

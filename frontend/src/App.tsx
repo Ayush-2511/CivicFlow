@@ -6,6 +6,7 @@ import { GroundingInspector } from './components/GroundingInspector';
 import { InterviewCard } from './components/InterviewCard';
 import { VerdictCard } from './components/VerdictCard';
 import { VoicePlayer } from './components/VoicePlayer';
+import { VerdictVoicePlayer } from './components/VerdictVoicePlayer';
 import { ActionChecklist } from './components/ActionChecklist';
 import { SchemePrintReport } from './components/SchemePrintReport';
 import {
@@ -289,12 +290,20 @@ export const App: React.FC = () => {
 
         {/* Split-View Cockpit (2-Column Layout) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column (5 Cols): Legal Grounding Inspector */}
-          <div className="lg:col-span-5">
+          {/* Left Column (5 Cols): Legal Grounding Inspector & Policy Explainer Voice */}
+          <div className="lg:col-span-5 space-y-6">
             <GroundingInspector scheme={pipelineStatus.scheme} />
+
+            {/* Regional Policy Explainer Voice (Shifted under Verified Policy Extraction) */}
+            {pipelineStatus.explainer && (
+              <VoicePlayer
+                explainer={pipelineStatus.explainer}
+                isSwitchingLanguage={isSwitchingLanguage}
+              />
+            )}
           </div>
 
-          {/* Right Column (7 Cols): Dynamic Interview & Verdict Cards */}
+          {/* Right Column (7 Cols): Dynamic Interview, Verdict & Verdict Voice */}
           <div className="lg:col-span-7 space-y-6">
             {/* Dynamic Interview Card (Human-in-the-Loop) */}
             {((pipelineStatus.status === 'waiting_for_answers' &&
@@ -331,11 +340,13 @@ export const App: React.FC = () => {
               <VerdictCard verdict={pipelineStatus.verdict} />
             )}
 
-            {/* Regional Voice Player */}
-            {pipelineStatus.explainer && (
-              <VoicePlayer
+            {/* Separate Regional Voice Under Eligibility Verdict */}
+            {pipelineStatus.verdict && (
+              <VerdictVoicePlayer
+                verdict={pipelineStatus.verdict}
                 explainer={pipelineStatus.explainer}
                 isSwitchingLanguage={isSwitchingLanguage}
+                language={language}
               />
             )}
 

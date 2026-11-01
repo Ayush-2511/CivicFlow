@@ -6,6 +6,47 @@ interface VerdictCardProps {
   verdict?: Verdict;
 }
 
+function formatReasonExplanation(reason: Reason): string {
+  if (!reason.explanation) return '';
+  const exp = reason.explanation.trim();
+
+  // If already a clean natural language sentence without raw operator patterns, return cleaned
+  if (!exp.includes('->') && !exp.match(/\s+(in|not_in|<=|>=|==|!=)\s+/)) {
+    return exp.replace(/\s*\(Clause\s+[\w-]+\)/g, '');
+  }
+
+  // Handle legacy raw strings: "Your field (val) op cond (Clause ...) -> PASSED/FAILED"
+  const isPassed = reason.passed ?? exp.includes('PASSED');
+  const cleanExp = exp.replace(/\s*->\s*(PASSED|FAILED)/g, '').replace(/\s*\(Clause\s+[\w-]+\)/g, '');
+
+  // Match in / not_in patterns
+  if (cleanExp.includes(' not_in ') || cleanExp.includes(' not in ')) {
+    const parts = cleanExp.split(/\s+not_?in\s+/);
+    const subject = parts[0].trim();
+    const list = (parts[1] || '').replace(/[\[\]']/g, '').trim();
+    return isPassed
+      ? `${subject} is eligible and not among the excluded categories (${list}).`
+      : `${subject} falls under the excluded categories (${list}).`;
+  }
+
+  if (cleanExp.includes(' in ')) {
+    const parts = cleanExp.split(/\s+in\s+/);
+    const subject = parts[0].trim();
+    const list = (parts[1] || '').replace(/[\[\]']/g, '').trim();
+    return isPassed
+      ? `${subject} is recognized as an eligible category (${list}).`
+      : `${subject}, but the scheme is exclusively reserved for: ${list}.`;
+  }
+
+  return cleanExp
+    .replace(/<=/g, isPassed ? 'does not exceed the maximum allowed limit of' : 'exceeds the maximum allowed limit of')
+    .replace(/>=/g, isPassed ? 'meets the minimum requirement of' : 'is below the minimum requirement of')
+    .replace(/==/g, isPassed ? 'matches the required' : 'does not match the required')
+    .replace(/!=/g, isPassed ? 'is correctly not' : 'is not permitted')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
   if (!verdict) return null;
 
@@ -67,7 +108,7 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
 
         <div className="flex items-center space-x-2.5 flex-shrink-0">
           <span
-            className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap text-center ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm ${
               isYes
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                 : isNo
@@ -75,7 +116,8 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
                 : 'bg-amber-100 text-amber-800 border border-amber-300'
             }`}
           >
-            Status: {verdict.status}
+            <span className="opacity-75">Status:</span>
+            <span className="font-extrabold">{verdict.status}</span>
           </span>
           <button
             onClick={() => window.print()}
@@ -123,14 +165,7 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
                 )}
                 <div>
                   <p className="font-semibold text-slate-800 leading-snug">
-                    {(reason.explanation || '')
-                      .replace(/<=/g, 'does not exceed')
-                      .replace(/>=/g, 'is at least')
-                      .replace(/==/g, 'is equal to')
-                      .replace(/!=/g, 'is not equal to')
-                      .replace(/\s+in\s+'\[(.*?)\]'/g, ' is in: $1')
-                      .replace(/\s+not_in\s+'\[(.*?)\]'/g, ' is not in: $1')
-                      .replace(/\s*->\s*(PASSED|FAILED)/g, '')}
+                    {formatReasonExplanation(reason)}
                   </p>
                   {reason.condition?.quote && (
                     <p className="text-[11px] text-slate-500 italic mt-0.5">

@@ -68,6 +68,7 @@ export interface Segment {
 
 export interface Explainer {
   language: string;
+  verdict_segment?: Segment;
   segments: Segment[];
   checklist: string[];
   audio_urls: string[];

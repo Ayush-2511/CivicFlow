@@ -114,10 +114,10 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({ explainer, isSwitching
           <div>
             <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center">
               <Sparkles className="w-3 h-3 mr-1" />
-              Regional Voice Explainer ({LANGUAGE_DISPLAY_NAMES[explainer.language.toLowerCase()] || explainer.language.toUpperCase()})
+              Policy Voice Explainer ({LANGUAGE_DISPLAY_NAMES[explainer.language.toLowerCase()] || explainer.language.toUpperCase()})
             </span>
             <h3 className="text-sm sm:text-base font-bold text-slate-800">
-              Listen in Your Language
+              Listen to Scheme Policy & Requirements
             </h3>
           </div>
         </div>
