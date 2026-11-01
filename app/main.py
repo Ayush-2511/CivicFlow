@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
@@ -73,6 +73,12 @@ app.mount("/audio", StaticFiles(directory=str(settings.AUDIO_OUTPUT_DIR)), name=
 # Mount API Routers
 app.include_router(pipeline_router)
 app.include_router(session_router)
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """Redirect root path to interactive Swagger documentation."""
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", tags=["Health"])
