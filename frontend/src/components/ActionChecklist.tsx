@@ -10,8 +10,54 @@ interface ActionChecklistProps {
 export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme }) => {
   if (!explainer && !scheme) return null;
 
-  const items = explainer?.checklist || [];
   const obligations = scheme?.obligations || [];
+
+  // Robust document extraction: Check explainer first, fallback to scheme obligations
+  const items: string[] = [];
+
+  if (explainer?.checklist && explainer.checklist.length > 0) {
+    items.push(...explainer.checklist);
+  } else if (obligations.length > 0) {
+    // Gather all explicit required_documents
+    obligations.forEach((ob) => {
+      if (ob.required_documents && ob.required_documents.length > 0) {
+        ob.required_documents.forEach((doc) => {
+          if (doc && !items.includes(doc)) items.push(doc);
+        });
+      } else if (ob.description) {
+        // Fallback: Extract from obligation description if it specifies document / verification requirement
+        const desc = ob.description.trim();
+        const lower = desc.toLowerCase();
+        if (
+          lower.includes('aadhaar') ||
+          lower.includes('document') ||
+          lower.includes('identification') ||
+          lower.includes('record') ||
+          lower.includes('certificate') ||
+          lower.includes('kyc') ||
+          lower.includes('passbook') ||
+          lower.includes('pan') ||
+          lower.includes('bank')
+        ) {
+          if (!items.includes(desc)) items.push(desc);
+        }
+      }
+    });
+
+    // If still empty but obligations exist, use obligation descriptions
+    if (items.length === 0) {
+      obligations.forEach((ob) => {
+        if (ob.description && !items.includes(ob.description)) {
+          items.push(ob.description);
+        }
+      });
+    }
+  }
+
+  // Extract explicit submission channels
+  const submissionChannels = obligations
+    .map((o) => o.apply_at)
+    .filter((a): a is string => Boolean(a && a.trim()));
 
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
 
@@ -89,9 +135,17 @@ export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, sch
               <MapPin className="w-4 h-4 text-teal-600" />
               <span>Where to Submit:</span>
             </div>
-            <p className="text-xs text-slate-600 font-medium">
-              Nearest Common Service Centre (CSC), Gram Panchayat office, or the official scheme portal.
-            </p>
+            {submissionChannels.length > 0 ? (
+              <ul className="text-xs text-slate-700 space-y-1 mt-1 font-medium list-disc list-inside">
+                {submissionChannels.map((ch, i) => (
+                  <li key={i}>{ch}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-600 font-medium">
+                Nearest Common Service Centre (CSC), Gram Panchayat office, or the official scheme portal.
+              </p>
+            )}
           </div>
 
           {obligations.some((o) => o.deadline) && (
