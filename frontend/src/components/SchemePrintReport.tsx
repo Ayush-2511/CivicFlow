@@ -9,6 +9,7 @@ import {
   Clock,
   Briefcase,
   Users,
+  Scale,
 } from 'lucide-react';
 import { Scheme, Verdict, Explainer } from '../types';
 
@@ -41,12 +42,26 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
 
   const obligations = scheme?.obligations || [];
   const benefits = scheme?.benefits || [];
+  const conditions = scheme?.conditions || [];
 
-  // User requirement: "instead of evaluation, the voice transcript should be there and in the start,
-  // in the regional language. remove the 1st point that explains if the user is eligible or not
-  // and keep the rest points in pdf"
+  // Regional voice transcript segments
+  // Filter out any personal rejection line if present, keeping all comprehensive scheme explanation points
   const allSegments = explainer?.segments || [];
-  const transcriptPoints = allSegments.length > 1 ? allSegments.slice(1) : allSegments;
+  const transcriptPoints = allSegments.filter((seg, idx) => {
+    if (idx === 0) {
+      const t = seg.text.toLowerCase();
+      if (
+        t.includes('you currently do not qualify') ||
+        t.includes('you do not qualify') ||
+        t.includes('योग्य নন') ||
+        t.includes('पात्र नहीं हैं') ||
+        t.includes('पात्र नाहीत')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   // Extract all required documents
   const documentItems: string[] = [];
@@ -209,7 +224,7 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
                   Regional Policy Explainer • प्रादेशिक भाषा स्पष्टीकरण
                 </span>
                 <h2 className="text-base font-black text-slate-900 leading-tight">
-                  {displayLangName} Explainer Summary
+                  {displayLangName} Comprehensive Policy Summary
                 </h2>
               </div>
             </div>
@@ -268,7 +283,36 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
         </div>
       )}
 
-      {/* 3. Scheme Benefits & Welfare Grants */}
+      {/* 3. Statutory Eligibility Conditions & Thresholds from Document */}
+      {conditions.length > 0 && (
+        <div className="border border-slate-300 rounded-xl p-4 mb-6 print-break-inside-avoid">
+          <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs uppercase tracking-wider mb-3 pb-2 border-b border-slate-200">
+            <Scale className="w-4 h-4 text-amber-700" />
+            <span>Statutory Eligibility Conditions & Criteria ({conditions.length}):</span>
+          </div>
+          <div className="space-y-2">
+            {conditions.map((c, idx) => (
+              <div
+                key={idx}
+                className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs flex items-start justify-between gap-3"
+              >
+                <div className="flex-1 space-y-0.5">
+                  <p className="font-semibold text-slate-900">
+                    {c.quote || `Criteria for ${c.field.replace('_', ' ')}: ${c.operator} ${c.value} ${c.unit || ''}`}
+                  </p>
+                </div>
+                {c.clause_id && (
+                  <span className="text-[10px] font-mono text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded ml-2 flex-shrink-0">
+                    {c.clause_id}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Scheme Benefits & Welfare Grants */}
       {benefits.length > 0 && (
         <div className="border border-slate-300 rounded-xl p-4 mb-6 print-break-inside-avoid">
           <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs uppercase tracking-wider mb-3 pb-2 border-b border-slate-200">
@@ -301,7 +345,7 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
         </div>
       )}
 
-      {/* 4. Mandatory Document Checklist */}
+      {/* 5. Mandatory Document Checklist */}
       <div className="border border-slate-300 rounded-xl p-4 mb-6 print-break-inside-avoid">
         <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs uppercase tracking-wider mb-3 pb-2 border-b border-slate-200">
           <FileText className="w-4 h-4 text-teal-700" />
@@ -337,7 +381,7 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
         )}
       </div>
 
-      {/* 5. Where to Apply & Submission Channels */}
+      {/* 6. Where to Apply & Submission Channels */}
       <div className="border border-slate-300 rounded-xl p-4 mb-6 print-break-inside-avoid">
         <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs uppercase tracking-wider mb-2">
           <MapPin className="w-4 h-4 text-indigo-700" />
@@ -356,7 +400,7 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
         )}
       </div>
 
-      {/* 6. Statutory Obligations & Compliance Notice */}
+      {/* 7. Statutory Obligations & Compliance Notice */}
       {obligations.length > 0 && (
         <div className="border border-slate-300 rounded-xl p-4 mb-6 print-break-inside-avoid bg-slate-50">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-2">

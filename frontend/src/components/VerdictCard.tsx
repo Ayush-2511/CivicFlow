@@ -65,9 +65,9 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
           </div>
         </div>
 
-        <div className="text-right sm:self-center flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5 flex-shrink-0">
           <span
-            className={`text-xs font-bold px-3 py-1.5 rounded-full inline-block ${
+            className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap text-center ${
               isYes
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                 : isNo
@@ -79,7 +79,7 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict }) => {
           </span>
           <button
             onClick={() => window.print()}
-            className="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg shadow-sm transition"
+            className="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg shadow-sm transition whitespace-nowrap"
             title="Print or Save Official Scheme Report"
           >
             <Printer className="w-3.5 h-3.5 text-slate-600" />
