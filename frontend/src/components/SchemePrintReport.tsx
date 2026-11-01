@@ -327,9 +327,9 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
               >
                 <div>
                   <p className="font-bold text-slate-900">{b.description}</p>
-                  {(b.amount !== undefined || b.frequency) && (
+                  {(typeof b.amount === 'number' || b.frequency) && (
                     <p className="text-emerald-800 font-bold mt-0.5">
-                      {b.amount !== undefined ? `₹${Number(b.amount).toLocaleString('en-IN')}` : ''}
+                      {typeof b.amount === 'number' ? `₹${Number(b.amount).toLocaleString('en-IN')}` : ''}
                       {b.frequency ? ` (${b.frequency})` : ''}
                     </p>
                   )}

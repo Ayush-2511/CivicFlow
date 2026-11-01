@@ -154,7 +154,7 @@ export const GroundingInspector: React.FC<GroundingInspectorProps> = ({ scheme }
                       {ben.clause_id}
                     </button>
                   </div>
-                  {ben.amount !== undefined && (
+                  {typeof ben.amount === 'number' && (
                     <span className="inline-block mt-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
                       ₹{ben.amount.toLocaleString('en-IN')} {ben.frequency ? `(${ben.frequency})` : ''}
                     </span>

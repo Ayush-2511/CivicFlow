@@ -12,7 +12,7 @@ export interface Condition {
 
 export interface Benefit {
   description: string;
-  amount?: number;
+  amount?: number | null;
   frequency?: string;
   clause_id: string;
   quote: string;

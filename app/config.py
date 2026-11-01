@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # Groq Configuration (Ultra-fast free LPU inference)
     GROQ_API_KEY: str = ""
-    GROQ_MODEL_FAST: str = "openai/gpt-oss-20b"
+    GROQ_MODEL_FAST: str = "qwen/qwen3.8-27b"
     GROQ_MODEL_STRONG: str = "openai/gpt-oss-120b"
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
 
