@@ -186,7 +186,15 @@ async def parse_document(
                 tier="fast",
             )
         except Exception as e:
-            raise UnreadableDocument(f"OCR processing failed for image: {str(e)}") from e
+            err_str = str(e)
+            logger.warning("OCR processing failed for image: %s", err_str)
+            if "decommissioned" in err_str.lower() or "not found" in err_str.lower() or "400" in err_str:
+                raise UnreadableDocument(
+                    "Image scanning is temporarily unavailable. Please upload the official PDF version of the document or paste the scheme's web link."
+                )
+            raise UnreadableDocument(
+                "Could not transcribe text from this image. Please upload a clear photo or the official PDF."
+            )
 
         cleaned = transcribed_text.strip()
         if "[ERROR_NOT_A_POLICY]" in cleaned:

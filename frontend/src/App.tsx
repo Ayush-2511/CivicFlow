@@ -26,6 +26,78 @@ import {
 } from './api';
 import { AlertCircle } from 'lucide-react';
 
+interface FriendlyError {
+  badge: string;
+  title: string;
+  message: string;
+  guidance: string;
+}
+
+const getFriendlyError = (raw: string): FriendlyError => {
+  const lower = (raw || '').toLowerCase();
+
+  if (lower.includes('decommissioned') || lower.includes('llama-3.2') || lower.includes('ocr processing failed') || lower.includes('vision')) {
+    return {
+      badge: 'Image Scanning Notice',
+      title: 'Image Scanning Temporarily Unavailable',
+      message: 'We were unable to extract text from this image directly. The server image processing service is temporarily resting.',
+      guidance: '💡 Tip: Please upload the official PDF version of the document or paste the official scheme link instead.',
+    };
+  }
+
+  if (lower.includes('blurry') || lower.includes('illegible') || lower.includes('out of focus') || lower.includes('dark')) {
+    return {
+      badge: 'Image Quality Check',
+      title: 'Document Image is Too Blurry to Read',
+      message: 'The text in this photo or scan is too blurry, faint, or dark to read reliably.',
+      guidance: '📸 Tip: Please take a steady photo in good lighting, or upload the official PDF copy.',
+    };
+  }
+
+  if (lower.includes('not a government policy') || lower.includes('not a policy') || lower.includes('not_a_policy')) {
+    return {
+      badge: 'Policy Domain Notice',
+      title: 'Not a Recognized Policy Document',
+      message: 'CivicFlow is built specifically to analyze official government welfare schemes, acts, and public gazette notifications.',
+      guidance: '🏛️ Tip: Please upload an official government policy guidelines PDF, subsidy notice, or municipal regulation.',
+    };
+  }
+
+  if (lower.includes('rate limit') || lower.includes('429') || lower.includes('quota') || lower.includes('tpm')) {
+    return {
+      badge: 'High Traffic Notice',
+      title: 'AI Processing Quota Reached — Please Wait',
+      message: 'The AI server is experiencing high traffic and briefly paused to stay within its limit.',
+      guidance: '⏳ Tip: Please wait 15 to 30 seconds and click "Upload Another File" to try again.',
+    };
+  }
+
+  if (lower.includes('timeout') || lower.includes('timed out') || lower.includes('connection')) {
+    return {
+      badge: 'Connection Notice',
+      title: 'Request Timed Out',
+      message: 'The server took too long to respond. The document might be very large or the network is slow.',
+      guidance: '🌐 Tip: Please check your internet connection and try uploading the document again.',
+    };
+  }
+
+  if (lower.includes('empty') || lower.includes('corrupt') || lower.includes('0 bytes')) {
+    return {
+      badge: 'File Notice',
+      title: 'Document Appears to Be Empty or Corrupt',
+      message: 'The uploaded file does not contain any readable text or pages.',
+      guidance: '📄 Tip: Please verify that the file opens correctly on your device, then try again.',
+    };
+  }
+
+  return {
+    badge: 'Processing Notice',
+    title: 'Unable to Process Document',
+    message: 'We ran into an issue while reading this file. No eligibility could be determined.',
+    guidance: 'ℹ️ Tip: Please verify that you are uploading an official government PDF or clear image, and try again.',
+  };
+};
+
 export const App: React.FC = () => {
   const [persona, setPersona] = useState<AudienceType>('citizen');
   const [language, setLanguage] = useState<string>('hi');
@@ -262,76 +334,53 @@ export const App: React.FC = () => {
           verifiedSources={verifiedSources}
         />
 
-        {/* Enhanced Error Banner with Domain & Quality Guidance */}
-        {errorMessage && (
-          <div className="mb-6 p-5 bg-rose-50/95 border-2 border-rose-200 rounded-2xl shadow-sm text-rose-900 transition-all">
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-              <div className="flex items-start space-x-3.5">
-                <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 mt-0.5 flex-shrink-0">
-                  <AlertCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-rose-200/80 text-rose-800">
-                      {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible')
-                        ? 'Image Quality Check'
-                        : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy')
-                        ? 'Policy Domain Check'
-                        : errorMessage.toLowerCase().includes('rate limit')
-                        ? 'API Rate Limit'
-                        : 'Processing Error'}
-                    </span>
+        {/* Human-Friendly Error Banner (No Technical Jargon) */}
+        {errorMessage && (() => {
+          const friendly = getFriendlyError(errorMessage);
+          return (
+            <div className="mb-6 p-5 bg-rose-50/95 border-2 border-rose-200 rounded-2xl shadow-sm text-rose-900 transition-all">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                <div className="flex items-start space-x-3.5">
+                  <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600 mt-0.5 flex-shrink-0">
+                    <AlertCircle className="w-5 h-5" />
                   </div>
-                  <h4 className="text-sm font-bold text-rose-950 mb-1">
-                    {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible')
-                      ? 'Document Image Unreadable or Blurry'
-                      : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy')
-                      ? 'Non-Policy Document Uploaded'
-                      : errorMessage.toLowerCase().includes('rate limit')
-                      ? 'AI Provider Rate Limit Exceeded'
-                      : 'Unable to Process Document'}
-                  </h4>
-                  <p className="text-xs text-rose-800 leading-relaxed max-w-2xl">{errorMessage}</p>
+                  <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-rose-200/80 text-rose-800">
+                        {friendly.badge}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-rose-950 mb-1">
+                      {friendly.title}
+                    </h4>
+                    <p className="text-xs text-rose-800 leading-relaxed max-w-2xl font-medium">
+                      {friendly.message}
+                    </p>
 
-                  {/* Contextual Action Guidance */}
-                  <div className="mt-2.5 text-[11px] text-rose-800 bg-white/80 border border-rose-200 rounded-lg p-2.5 shadow-xs">
-                    {errorMessage.toLowerCase().includes('blurry') || errorMessage.toLowerCase().includes('illegible') ? (
-                      <span>
-                        📸 <strong>Guidance:</strong> Please upload a high-contrast, well-lit photo or digital PDF. Ensure the text lines are sharp, level, and not shadowed or cropped.
-                      </span>
-                    ) : errorMessage.toLowerCase().includes('not a government policy') || errorMessage.toLowerCase().includes('not a policy') ? (
-                      <span>
-                        🏛️ <strong>Guidance:</strong> CivicFlow is specifically designed for <em>welfare policies, gazette orders, subsidy guidelines, and citizen acts</em>. Personal photos, recipes, invoices, or general text cannot be evaluated.
-                      </span>
-                    ) : errorMessage.toLowerCase().includes('rate limit') ? (
-                      <span>
-                        ⏳ <strong>Guidance:</strong> The AI provider has a rolling 60-second limit. Please wait 15–30 seconds and upload again.
-                      </span>
-                    ) : (
-                      <span>
-                        ℹ️ <strong>Guidance:</strong> Verify your document is a valid PDF or image file and try again.
-                      </span>
-                    )}
+                    {/* Actionable Human Guidance */}
+                    <div className="mt-2.5 text-[11px] text-rose-800 bg-white/90 border border-rose-200 rounded-lg p-2.5 shadow-xs">
+                      <span>{friendly.guidance}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2 self-end sm:self-start flex-shrink-0">
-                <button
-                  onClick={handleReset}
-                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                >
-                  Upload Another File
-                </button>
-                <button
-                  onClick={() => setErrorMessage(null)}
-                  className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-900 font-medium"
-                >
-                  Dismiss
-                </button>
+                <div className="flex items-center space-x-2 self-end sm:self-start flex-shrink-0">
+                  <button
+                    onClick={handleReset}
+                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                  >
+                    Upload Another File
+                  </button>
+                  <button
+                    onClick={() => setErrorMessage(null)}
+                    className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-900 font-medium"
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Real-Time Stepper (If pipeline has started) */}
         {runId && (

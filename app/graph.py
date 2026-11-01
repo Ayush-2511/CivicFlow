@@ -88,6 +88,13 @@ def get_llm() -> LLM:
     return _default_llm
 
 
+def get_vision_llm() -> LLM:
+    """Return an LLM provider with multimodal vision capabilities."""
+    if settings.GEMINI_API_KEY:
+        return GeminiLLMProvider(api_key=settings.GEMINI_API_KEY)
+    return get_llm()
+
+
 def get_tts() -> TTS:
     global _default_tts
     if _default_tts is None:
