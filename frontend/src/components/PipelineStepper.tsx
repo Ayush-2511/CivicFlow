@@ -29,12 +29,35 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
   confidence,
   onReset,
 }) => {
-  const getNodeInfo = (nodeKey: string) => {
-    const traceEntry = trace.find((t) => t.node === nodeKey);
-    const isCompleted = !!traceEntry && traceEntry.status === 'ok';
-    const isCurrent = currentNode === nodeKey && status === 'running';
-    const isPending = !traceEntry && !isCurrent;
-    const hasError = traceEntry && traceEntry.status === 'error';
+  const getNodeInfo = (nodeKey: string, nodeIndex: number) => {
+    // Find all trace entries for this node
+    const nodeEntries = trace.filter((t) => t.node === nodeKey);
+    const traceEntry = nodeEntries.length > 0 ? nodeEntries[nodeEntries.length - 1] : undefined;
+
+    // A node is completed if:
+    // 1. Any of its trace entries has a completed status ('ok', 'interview_completed', 'interview_ready', etc.)
+    // 2. OR any downstream node in the linear pipeline is already completed
+    const hasSuccessfulEntry = nodeEntries.some((t) =>
+      t.status === 'ok' ||
+      t.status === 'interview_completed' ||
+      t.status === 'interview_ready' ||
+      t.status === 'completed' ||
+      t.status === 'evaluated' ||
+      t.status === 'composed'
+    );
+
+    const hasLaterStepCompleted = NODES.slice(nodeIndex + 1).some((laterNode) =>
+      trace.some((t) => t.node === laterNode.key && (t.status === 'ok' || t.status === 'completed' || t.status === 'evaluated' || t.status === 'composed'))
+    );
+
+    const isCompleted = hasSuccessfulEntry || hasLaterStepCompleted;
+
+    const isCurrent =
+      (currentNode === nodeKey && status === 'running') ||
+      (nodeKey === 'interview' && status === 'waiting_for_answers');
+
+    const isPending = !isCompleted && !isCurrent;
+    const hasError = !isCompleted && nodeEntries.some((t) => t.status === 'error');
 
     return { traceEntry, isCompleted, isCurrent, isPending, hasError };
   };
@@ -87,7 +110,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
       <div className="overflow-x-auto pb-1">
         <div className="flex items-center justify-between min-w-[700px]">
           {NODES.map((node, index) => {
-            const { traceEntry, isCompleted, isCurrent, hasError } = getNodeInfo(node.key);
+            const { traceEntry, isCompleted, isCurrent, hasError } = getNodeInfo(node.key, index);
 
             return (
               <React.Fragment key={node.key}>
