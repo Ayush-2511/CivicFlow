@@ -15,10 +15,10 @@ export const ExtractionProgressCard: React.FC<ExtractionProgressCardProps> = ({
     return null;
   }
 
-  const percent = progress?.percent ?? 15;
-  const secondsRemaining = progress?.estimated_seconds_remaining ?? 75;
+  const percent = progress?.percent ?? 25;
+  const secondsRemaining = progress?.estimated_seconds_remaining ?? 8;
   const currentSection = progress?.current_section ?? 1;
-  const totalSections = progress?.total_sections ?? 5;
+  const totalSections = progress?.total_sections ?? 2;
   const stage = progress?.stage || 'Extracting official policy rules and criteria...';
 
   // Format seconds to mm:ss
@@ -48,10 +48,10 @@ export const ExtractionProgressCard: React.FC<ExtractionProgressCardProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Comprehensive Clause Extraction
+                  High-Speed Clause Extraction
                 </span>
                 <span className="text-[10px] bg-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-400/30">
-                  Zero Rate-Limit Pacing
+                  Fast Parallel Processing
                 </span>
               </div>
               <h3 className="text-base font-bold text-white">
@@ -99,7 +99,7 @@ export const ExtractionProgressCard: React.FC<ExtractionProgressCardProps> = ({
         <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400 pt-1 border-t border-slate-700/40">
           <span className="flex items-center space-x-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>All 80+ clauses parsed</span>
+            <span>All official clauses parsed</span>
           </span>
           <span className="flex items-center space-x-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -107,11 +107,10 @@ export const ExtractionProgressCard: React.FC<ExtractionProgressCardProps> = ({
           </span>
           <span className="flex items-center space-x-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Evenly spaced to prevent API throttling</span>
+            <span>Optimized zero-delay execution</span>
           </span>
         </div>
       </div>
     </div>
   );
 };
-

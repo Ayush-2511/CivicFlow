@@ -32,6 +32,56 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
   ur: 'Urdu (اردو)',
 };
 
+const ADMIN_DOC_TERMS = [
+  'state/ut',
+  'sponsoring bank',
+  'pfms',
+  'it system',
+  'department',
+  'displayed at',
+  'panchayat must',
+  'transparency',
+  'inter-departmental',
+  'destination bank',
+  'nodal officer',
+  'procedure',
+  'fund transfer',
+  'shall designate',
+  'shall prepare',
+  'shall authorize',
+  'database of',
+  'village authority namely',
+  'agriculture census',
+];
+
+function canonicalPrintDocName(doc: string): string | null {
+  if (!doc) return null;
+  const clean = doc.trim();
+  const lower = clean.toLowerCase();
+
+  // Reject administrative procedures and duties
+  if (ADMIN_DOC_TERMS.some((term) => lower.includes(term))) return null;
+  if (clean.length > 80) return null;
+
+  if (lower.includes('aadhaar')) return 'Aadhaar Card';
+  if (lower.includes('khatauni') || lower.includes('land') || lower.includes('patta') || lower.includes('vanshavali') || lower.includes('village authority') || lower.includes('lineage')) {
+    return 'Land Ownership Record (Khatauni / Land Certificate)';
+  }
+  if (lower.includes('passbook') || lower.includes('bank account') || lower.includes('bank statement') || lower.includes('bank details')) {
+    return 'Bank Account Passbook / Statement';
+  }
+  if (lower.includes('self-declaration') || lower.includes('self declaration')) return 'Self-Declaration Form';
+  if (lower.includes('udyam')) return 'Udyam Registration Certificate';
+  if (lower.includes('pan')) return 'PAN Card';
+  if (lower.includes('gst')) return 'GSTIN Registration';
+  if (lower.includes('voter')) return 'Voter ID Card';
+  if (lower.includes('driving')) return 'Driving Licence';
+  if (lower.includes('income')) return 'Income Certificate';
+  if (lower.includes('caste')) return 'Caste Certificate';
+
+  return clean;
+}
+
 export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
   scheme,
   explainer,
@@ -63,50 +113,29 @@ export const SchemePrintReport: React.FC<SchemePrintReportProps> = ({
     return true;
   });
 
-  // Extract all required documents
+  // Extract all required documents cleanly
   const documentItems: string[] = [];
+  const seenCanonical = new Set<string>();
+
   obligations.forEach((ob) => {
-    if (ob.required_documents && ob.required_documents.length > 0) {
-      ob.required_documents.forEach((doc) => {
-        const clean = doc.trim();
-        if (clean && !documentItems.includes(clean)) {
-          documentItems.push(clean);
-        }
-      });
-    }
+    (ob.required_documents || []).forEach((doc) => {
+      const clean = canonicalPrintDocName(doc);
+      if (clean && !seenCanonical.has(clean.toLowerCase())) {
+        seenCanonical.add(clean.toLowerCase());
+        documentItems.push(clean);
+      }
+    });
   });
 
   if (explainer?.checklist && explainer.checklist.length > 0) {
     explainer.checklist.forEach((item) => {
       const clean = item.trim();
-      if (clean && !documentItems.includes(clean)) {
+      if (clean && !seenCanonical.has(clean.toLowerCase())) {
+        seenCanonical.add(clean.toLowerCase());
         documentItems.push(clean);
       }
     });
   }
-
-  obligations.forEach((ob) => {
-    if (ob.description) {
-      const desc = ob.description.trim();
-      const lower = desc.toLowerCase();
-      if (
-        lower.includes('aadhaar') ||
-        lower.includes('document') ||
-        lower.includes('identification') ||
-        lower.includes('record') ||
-        lower.includes('certificate') ||
-        lower.includes('kyc') ||
-        lower.includes('passbook') ||
-        lower.includes('pan') ||
-        lower.includes('gstin') ||
-        lower.includes('bank statement')
-      ) {
-        if (!documentItems.includes(desc)) {
-          documentItems.push(desc);
-        }
-      }
-    }
-  });
 
   // Extract deadlines
   const deadlines: { date: string; description: string; clause_id?: string }[] = [];

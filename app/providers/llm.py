@@ -76,8 +76,10 @@ class GeminiLLMProvider:
         client = self._get_client()
         model_name = self._resolve_model(tier)
 
+        # Zero temperature for deterministic, reliable policy parsing
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,
+            temperature=0.0,
         )
 
         contents: list[str | types.Part] = []
@@ -139,10 +141,12 @@ class GeminiLLMProvider:
                 contents.append(types.Part.from_bytes(data=img_bytes, mime_type=mime))
         contents.append(prompt)
 
+        # Zero temperature ensures reproducible, consistent outputs on every run
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=schema,
             system_instruction=system_instruction,
+            temperature=0.0,
         )
 
         current_prompt = prompt
@@ -211,4 +215,3 @@ class GeminiLLMProvider:
                 await asyncio.sleep(2 ** attempt)
 
         raise ProviderError(f"Failed to produce valid {schema.__name__} after {self.max_retries} attempts.")
-

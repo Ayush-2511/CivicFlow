@@ -115,7 +115,7 @@ class GroqLLMProvider:
             payload = {
                 "model": current_model,
                 "messages": messages,
-                "temperature": 0.1,
+                "temperature": 0.0,
                 "max_tokens": 1500,
             }
 
@@ -245,7 +245,7 @@ class GroqLLMProvider:
             payload = {
                 "model": current_model,
                 "messages": active_messages,
-                "temperature": 0.1,
+                "temperature": 0.0,
                 "max_tokens": 2000,
                 "response_format": {"type": "json_object"},
             }

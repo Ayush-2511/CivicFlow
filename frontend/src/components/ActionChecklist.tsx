@@ -8,6 +8,56 @@ interface ActionChecklistProps {
   verdict?: Verdict;
 }
 
+const ADMIN_TERMS = [
+  'state/ut',
+  'sponsoring bank',
+  'pfms',
+  'it system',
+  'department',
+  'displayed at',
+  'panchayat must',
+  'transparency',
+  'inter-departmental',
+  'destination bank',
+  'nodal officer',
+  'procedure',
+  'fund transfer',
+  'shall designate',
+  'shall prepare',
+  'shall authorize',
+  'database of',
+  'village authority namely',
+  'agriculture census',
+];
+
+function canonicalDocName(doc: string): string | null {
+  if (!doc) return null;
+  const clean = doc.trim();
+  const lower = clean.toLowerCase();
+
+  // Reject administrative procedures and duties
+  if (ADMIN_TERMS.some((term) => lower.includes(term))) return null;
+  if (clean.length > 80) return null;
+
+  if (lower.includes('aadhaar')) return 'Aadhaar Card';
+  if (lower.includes('khatauni') || lower.includes('land') || lower.includes('patta') || lower.includes('vanshavali') || lower.includes('village authority') || lower.includes('lineage')) {
+    return 'Land Ownership Record (Khatauni / Land Certificate)';
+  }
+  if (lower.includes('passbook') || lower.includes('bank account') || lower.includes('bank statement') || lower.includes('bank details')) {
+    return 'Bank Account Passbook / Statement';
+  }
+  if (lower.includes('self-declaration') || lower.includes('self declaration')) return 'Self-Declaration Form';
+  if (lower.includes('udyam')) return 'Udyam Registration Certificate';
+  if (lower.includes('pan')) return 'PAN Card';
+  if (lower.includes('gst')) return 'GSTIN Registration';
+  if (lower.includes('voter')) return 'Voter ID Card';
+  if (lower.includes('driving')) return 'Driving Licence';
+  if (lower.includes('income')) return 'Income Certificate';
+  if (lower.includes('caste')) return 'Caste Certificate';
+
+  return clean;
+}
+
 export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, scheme }) => {
   if (!explainer && !scheme) return null;
 
@@ -15,44 +65,29 @@ export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, sch
 
   // Robust document extraction: Check explainer first, fallback to scheme obligations
   const items: string[] = [];
+  const seenCanonical = new Set<string>();
 
   if (explainer?.checklist && explainer.checklist.length > 0) {
-    items.push(...explainer.checklist);
+    explainer.checklist.forEach((item) => {
+      const canon = canonicalDocName(item);
+      const toAdd = canon || item;
+      const lower = toAdd.toLowerCase();
+      if (!ADMIN_TERMS.some((term) => lower.includes(term)) && !seenCanonical.has(lower)) {
+        seenCanonical.add(lower);
+        items.push(toAdd);
+      }
+    });
   } else if (obligations.length > 0) {
     // Gather all explicit required_documents
     obligations.forEach((ob) => {
-      if (ob.required_documents && ob.required_documents.length > 0) {
-        ob.required_documents.forEach((doc) => {
-          if (doc && !items.includes(doc)) items.push(doc);
-        });
-      } else if (ob.description) {
-        // Fallback: Extract from obligation description if it specifies document / verification requirement
-        const desc = ob.description.trim();
-        const lower = desc.toLowerCase();
-        if (
-          lower.includes('aadhaar') ||
-          lower.includes('document') ||
-          lower.includes('identification') ||
-          lower.includes('record') ||
-          lower.includes('certificate') ||
-          lower.includes('kyc') ||
-          lower.includes('passbook') ||
-          lower.includes('pan') ||
-          lower.includes('bank')
-        ) {
-          if (!items.includes(desc)) items.push(desc);
-        }
-      }
-    });
-
-    // If still empty but obligations exist, use obligation descriptions
-    if (items.length === 0) {
-      obligations.forEach((ob) => {
-        if (ob.description && !items.includes(ob.description)) {
-          items.push(ob.description);
+      (ob.required_documents || []).forEach((doc) => {
+        const canon = canonicalDocName(doc);
+        if (canon && !seenCanonical.has(canon.toLowerCase())) {
+          seenCanonical.add(canon.toLowerCase());
+          items.push(canon);
         }
       });
-    }
+    });
   }
 
   // Extract explicit submission channels
@@ -173,4 +208,3 @@ export const ActionChecklist: React.FC<ActionChecklistProps> = ({ explainer, sch
     </div>
   );
 };
-

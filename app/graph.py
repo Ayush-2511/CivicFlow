@@ -79,6 +79,10 @@ _default_tts: Optional[TTS] = None
 
 def get_llm() -> LLM:
     global _default_llm
+    if settings.GEMINI_API_KEY and not settings.GROQ_API_KEY:
+        if _default_llm is None or not isinstance(_default_llm, GeminiLLMProvider):
+            _default_llm = GeminiLLMProvider(api_key=settings.GEMINI_API_KEY)
+        return _default_llm
     provider = (settings.LLM_PROVIDER or "groq").lower().strip()
     if provider == "groq" or (settings.GROQ_API_KEY and not settings.GEMINI_API_KEY):
         if not isinstance(_default_llm, GroqLLMProvider) or not _default_llm.api_key:
